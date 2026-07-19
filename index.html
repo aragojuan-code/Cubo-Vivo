@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cubo Vivo — Prototipo v0.8</title>
+<title>Cubo Vivo — Prototipo v0.12</title>
 <style>
 :root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -12,11 +12,11 @@ body{display:flex;justify-content:center;align-items:stretch}
 #app{position:relative;width:min(100vw,560px);height:100dvh;display:grid;grid-template-rows:auto 156px 1fr auto;gap:10px;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
 .hud{display:flex;justify-content:space-between;align-items:flex-start;padding:2px 4px}.score{font-weight:800;letter-spacing:.12em;font-size:22px}.sub{font-size:12px;color:var(--muted);margin-top:3px}.status{text-align:right;font-size:12px;color:var(--muted)}
 .preview-wrap{position:relative;border:1px solid rgba(110,231,242,.25);border-radius:18px;background:linear-gradient(180deg,rgba(27,69,84,.3),rgba(8,22,29,.5));box-shadow:inset 0 0 30px rgba(110,231,242,.05);padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible}
-.preview-title{font-size:11px;letter-spacing:.18em;color:var(--muted);margin-bottom:8px}.preview{position:relative;width:196px;height:112px;margin-top:1px;flex:0 0 auto}.cell{position:absolute;width:52px;height:32px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:rgba(5,18,24,.76);border:0;filter:drop-shadow(0 0 1px rgba(110,231,242,.65));display:grid;place-items:center}.cell::after{content:'';position:absolute;inset:2px;clip-path:inherit;border:1px solid rgba(110,231,242,.28)}.cell.active{background:rgba(81,24,32,.88);filter:drop-shadow(0 0 8px rgba(255,107,107,.72))}.cell.active::after{border-color:rgba(255,140,140,.95)}.dot{position:relative;z-index:2;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 14px rgba(255,107,107,.8)}
-.fall-ball{position:absolute;left:0;top:0;width:18px;height:18px;border-radius:50%;z-index:30;pointer-events:none;opacity:0;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.9);transform:translate(-50%,-50%)}
+.preview-title{font-size:11px;letter-spacing:.18em;color:var(--muted);margin-bottom:8px}.preview{position:relative;width:196px;height:112px;margin-top:1px;flex:0 0 auto}.cell{position:absolute;width:52px;height:32px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:transparent;border:0;display:grid;place-items:center}.cell::after{content:'';position:absolute;inset:1px;clip-path:inherit;border:1px solid rgba(110,231,242,.32)}.cell.active,.cell.active::after{background:transparent;filter:none;border-color:rgba(110,231,242,.32)}.dot{position:relative;z-index:2;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 14px rgba(255,107,107,.8);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall .9s cubic-bezier(.18,.72,.22,1) both}@keyframes materializeBall{0%{opacity:0;transform:scale(.18);filter:blur(5px)}35%{opacity:.28;transform:scale(.58);filter:blur(2.8px)}72%{opacity:.84;transform:scale(1.08);filter:blur(.6px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+.fall-ball{position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;z-index:30;pointer-events:none;opacity:0;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.9);transform:translate(-50%,-50%)}
 .countdown{position:absolute;right:12px;bottom:10px;font-variant-numeric:tabular-nums;font-weight:700;color:var(--cyan)}
 .stage{position:relative;min-height:0;border-radius:22px;background:linear-gradient(180deg,rgba(9,25,33,.1),rgba(4,11,15,.45));overflow:hidden}
-canvas{width:100%;height:100%;display:block;touch-action:none}.message{position:absolute;left:50%;top:8px;transform:translateX(-50%);padding:7px 12px;border-radius:999px;background:rgba(6,19,26,.78);border:1px solid rgba(110,231,242,.22);font-size:12px;color:#bfeef3;white-space:nowrap;opacity:0;transition:opacity .2s}.message.show{opacity:1}
+canvas{width:100%;height:100%;display:block;touch-action:none}.message{display:none}
 .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.control{min-height:74px;border:1px solid rgba(110,231,242,.32);border-radius:18px;background:linear-gradient(180deg,#173541,#0c2029);color:var(--text);font-size:28px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 7px 22px rgba(0,0,0,.25);touch-action:manipulation}.control:active{transform:translateY(1px);background:#1b4350}.control:disabled{opacity:.38;filter:saturate(.45);transform:none}.control small{display:block;font-size:10px;letter-spacing:.15em;color:var(--muted);margin-top:4px}.restart{position:absolute;right:10px;top:10px;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(5,15,20,.6);color:#bfeef3;padding:7px 10px;font-size:11px}
 .legend{position:absolute;left:10px;bottom:10px;font-size:10px;color:var(--muted);line-height:1.45;background:rgba(4,12,16,.55);padding:7px 9px;border-radius:10px}.key{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}.solid{background:#516b76}.tunnel{background:#65dbe8}
 @media (max-height:700px){#app{grid-template-rows:auto 132px 1fr auto}.control{min-height:62px}.preview{transform:scale(.82);transform-origin:center}}
@@ -26,7 +26,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none}.message{position:
 <div id="app">
   <div id="fallBall" class="fall-ball" aria-hidden="true"></div>
   <header class="hud">
-    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.8</div></div>
+    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.12</div></div>
     <div class="status"><div id="stateLabel">PREPARADO</div><div id="cubeCount">27 cubos</div></div>
   </header>
 
@@ -65,16 +65,17 @@ const rotateABtn = document.getElementById('rotateA');
 const rotateBBtn = document.getElementById('rotateB');
 
 const N = 3;
-const FALL_TIME = 2.0;
+const FALL_TIME = 2.35;
 // Keep one constant spatial speed before, through and just below the cube.
 const BALL_START_Z = 8;
 const BALL_ENTRY_Z = N + .2;
 const BALL_EXIT_Z = -4.2;
 const BALL_SPEED = (BALL_START_Z - BALL_ENTRY_Z) / FALL_TIME;
-const TRAVERSE_TIME = (BALL_ENTRY_Z - BALL_EXIT_Z) / BALL_SPEED;
+// The crossing duration is calculated per wave from the same on-screen speed.
+let traverseDuration = (BALL_ENTRY_Z - BALL_EXIT_Z) / BALL_SPEED;
 const ROT_TIME = 0.18;
 const Cell = Object.freeze({ EMPTY:0, SOLID:1, TX:2, TY:3, TZ:4 });
-let grid, score, state, timer, nextBall, activeBall, rotAnim, gameOver, lastTime, breakBursts;
+let grid, score, state, timer, currentBall, queuedBall, activeBall, rotAnim, gameOver, lastTime, breakBursts, previewMaterialize, previewRevealTimer, queuedVisible;
 
 function makeGrid(){ return Array.from({length:N},()=>Array.from({length:N},()=>Array(N).fill(Cell.SOLID))); }
 function setCell(x,y,z,v){ grid[x][y][z]=v; }
@@ -84,18 +85,35 @@ function reset(){
   for(let x=0;x<N;x++) setCell(x,1,1,Cell.TX);       // central X tunnel
   for(let y=0;y<N;y++) setCell(1,y,0,Cell.TY);       // edge Y tunnel
   for(let z=0;z<N;z++) setCell(0,0,z,Cell.TZ);       // corner Z tunnel
-  spawnNext(); state='FALLING'; timer=0; lastTime=performance.now(); fallBallEl.style.opacity='0'; updateUI();
+  currentBall=randomBall(); queuedBall=randomBall(currentBall); previewMaterialize=false; previewRevealTimer=0; queuedVisible=false; renderPreview();
+  state='FALLING'; timer=0; lastTime=performance.now(); fallBallEl.style.opacity='0'; updateUI();
 }
-function spawnNext(){ nextBall={row:Math.floor(Math.random()*3), col:Math.floor(Math.random()*3)}; renderPreview(); }
+function randomBall(exclude=null){
+  let ball;
+  do { ball={row:Math.floor(Math.random()*3), col:Math.floor(Math.random()*3)}; }
+  while(exclude && ball.row===exclude.row && ball.col===exclude.col);
+  return ball;
+}
+function advanceBallQueue(){
+  currentBall=queuedBall;
+  queuedBall=randomBall(currentBall);
+  previewMaterialize=false;
+  previewRevealTimer=0;
+  queuedVisible=false;
+  renderPreview();
+}
 function renderPreview(){
   previewEl.innerHTML='';
   const cw=52,ch=32, ox=72, oy=4;
   for(let r=0;r<3;r++) for(let c=0;c<3;c++){
-    const d=document.createElement('div'); d.className='cell'+(nextBall&&nextBall.row===r&&nextBall.col===c?' active':'');
+    const isQueued=queuedVisible&&queuedBall&&queuedBall.row===r&&queuedBall.col===c;
+    const d=document.createElement('div'); d.className='cell'+(isQueued?' active':'');
+    d.dataset.row=String(r); d.dataset.col=String(c);
     d.style.left=(ox+(c-r)*cw*.5)+'px'; d.style.top=(oy+(c+r)*ch*.5)+'px';
     d.style.zIndex=String(r+c);
-    if(nextBall&&nextBall.row===r&&nextBall.col===c){const dot=document.createElement('div');dot.className='dot';d.appendChild(dot);} previewEl.appendChild(d);
+    if(isQueued){const dot=document.createElement('div');dot.className='dot'+(previewMaterialize?' materializing':'');d.appendChild(dot);} previewEl.appendChild(d);
   }
+  previewMaterialize=false;
 }
 function requestRotation(type){
   // No queue: ignore presses while a rotation is playing or the ball is crossing.
@@ -119,8 +137,27 @@ function rotateGridY(){
   } grid=ng;
 }
 function topColumnFromPreview(row,col){ return {x:col,y:row}; }
+function calculateTraverseDuration(ball){
+  const originCell=previewEl.querySelector(`.cell[data-row="${ball.row}"][data-col="${ball.col}"]`);
+  if(!originCell) return (BALL_ENTRY_Z-BALL_EXIT_Z)/BALL_SPEED;
+  const appRect=appEl.getBoundingClientRect();
+  const cellRect=originCell.getBoundingClientRect();
+  const canvasRect=canvas.getBoundingClientRect();
+  const start={x:cellRect.left+cellRect.width/2-appRect.left,y:cellRect.top+cellRect.height/2-appRect.top};
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  const s=Math.min(w/6.2,h/6.2),ox=w/2,oy=h*.64;
+  const {x,y}=topColumnFromPreview(ball.row,ball.col);
+  const entryLocal=project(x,y,BALL_ENTRY_Z,ox,oy,s);
+  const exitLocal=project(x,y,BALL_EXIT_Z,ox,oy,s);
+  const entry={x:canvasRect.left-appRect.left+entryLocal.x,y:canvasRect.top-appRect.top+entryLocal.y};
+  const exit={x:canvasRect.left-appRect.left+exitLocal.x,y:canvasRect.top-appRect.top+exitLocal.y};
+  const outsideDistance=Math.hypot(entry.x-start.x,entry.y-start.y);
+  const insideDistance=Math.hypot(exit.x-entry.x,exit.y-entry.y);
+  const pxPerSecond=Math.max(1,outsideDistance/FALL_TIME);
+  return insideDistance/pxPerSecond;
+}
 function resolveBall(){
-  const {x,y}=topColumnFromPreview(nextBall.row,nextBall.col);
+  const {x,y}=topColumnFromPreview(currentBall.row,currentBall.col);
   const hits=[]; let clear=true;
   for(let z=N-1;z>=0;z--){
     const v=grid[x][y][z];
@@ -128,10 +165,10 @@ function resolveBall(){
     if(v!==Cell.TZ){ clear=false; hits.push({x,y,z}); }
   }
   hits.sort((a,b)=>b.z-a.z);
-  activeBall={x,y,t:0,clear,hits,nextHit:0,currentZ:BALL_ENTRY_Z};
+  traverseDuration=calculateTraverseDuration(currentBall);
+  activeBall={x,y,t:0,clear,hits,nextHit:0,currentZ:BALL_ENTRY_Z,duration:traverseDuration};
   state='RESOLVING'; timer=0;
-  if(clear){ score+=100; showMessage('PASO LIMPIO +100'); }
-  else { showMessage(`IMPACTO · ${hits.length} BLOQUE${hits.length!==1?'S':''}`); }
+  if(clear) score+=100;
 }
 function finishResolution(){
   // Safety: if a very slow frame skipped a contact, finish remaining impacts in order.
@@ -142,8 +179,8 @@ function finishResolution(){
   }
   activeBall=null;
   const count=countCubes();
-  if(count===0){ gameOver=true; state='GAME OVER'; showMessage('GAME OVER'); updateUI(); return; }
-  spawnNext(); state='FALLING'; timer=0;
+  if(count===0){ gameOver=true; state='GAME OVER'; updateUI(); return; }
+  advanceBallQueue(); state='FALLING'; timer=0;
 }
 function countCubes(){let n=0;for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY)n++;return n;}
 function breakHit(p){
@@ -158,12 +195,11 @@ function processSequentialBreaks(){
   while(activeBall.nextHit<activeBall.hits.length){
     const hit=activeBall.hits[activeBall.nextHit];
     // Break only when the descending sphere reaches this cube's centre.
-    if(z>hit.z+.18) break;
+    if(z>hit.z+.27) break;
     breakHit(hit);
     activeBall.nextHit++;
   }
 }
-function showMessage(text){msgEl.textContent=text;msgEl.classList.add('show');clearTimeout(showMessage._t);showMessage._t=setTimeout(()=>msgEl.classList.remove('show'),850);}
 function update(dt){
   if(gameOver) return;
   if(rotAnim){
@@ -171,31 +207,42 @@ function update(dt){
     if(rotAnim.t>=ROT_TIME){ if(rotAnim.type==='A') rotateGridX(); else rotateGridY(); rotAnim=null; }
   }
   timer+=dt;
+  if(state==='FALLING' && !queuedVisible){
+    previewRevealTimer+=dt;
+    if(previewRevealTimer>=.32){
+      queuedVisible=true;
+      previewMaterialize=true;
+      renderPreview();
+    }
+  }
   if(state==='FALLING' && timer>=FALL_TIME) resolveBall();
   else if(state==='RESOLVING'){
-    activeBall.t=Math.min(1,timer/TRAVERSE_TIME);
+    activeBall.t=Math.min(1,timer/activeBall.duration);
     activeBall.currentZ=BALL_ENTRY_Z-activeBall.t*(BALL_ENTRY_Z-BALL_EXIT_Z);
     processSequentialBreaks();
-    if(timer>=TRAVERSE_TIME) finishResolution();
+    if(timer>=activeBall.duration) finishResolution();
   }
   for(const b of breakBursts) b.t+=dt;
   breakBursts=breakBursts.filter(b=>b.t<.34);
 }
 function updateFallBallOverlay(){
-  if(state!=='FALLING' || !nextBall){
+  if(state!=='FALLING' || !currentBall){
     fallBallEl.style.opacity='0';
     return;
   }
-  const active=previewEl.querySelector('.cell.active');
-  if(!active) return;
+  const originCell=previewEl.querySelector(`.cell[data-row="${currentBall.row}"][data-col="${currentBall.col}"]`);
+  if(!originCell) return;
   const appRect=appEl.getBoundingClientRect();
-  const cellRect=active.getBoundingClientRect();
+  const cellRect=originCell.getBoundingClientRect();
   const canvasRect=canvas.getBoundingClientRect();
   const startX=cellRect.left+cellRect.width/2-appRect.left;
   const startY=cellRect.top+cellRect.height/2-appRect.top;
-  const {x,y}=topColumnFromPreview(nextBall.row,nextBall.col);
+  const {x,y}=topColumnFromPreview(currentBall.row,currentBall.col);
   const w=canvas.clientWidth,h=canvas.clientHeight;
   const s=Math.min(w/6.2,h/6.2), ox=w/2, oy=h*.64;
+  const ballDiameter=Math.max(2,s*.34);
+  fallBallEl.style.width=ballDiameter+'px';
+  fallBallEl.style.height=ballDiameter+'px';
   const target=project(x,y,BALL_ENTRY_Z,ox,oy,s);
   const endX=canvasRect.left-appRect.left+target.x;
   const endY=canvasRect.top-appRect.top+target.y;
@@ -205,7 +252,6 @@ function updateFallBallOverlay(){
   fallBallEl.style.left=xPos+'px';
   fallBallEl.style.top=yPos+'px';
   fallBallEl.style.opacity='1';
-  const dot=active.querySelector('.dot'); if(dot) dot.style.opacity=p<.025?'1':'0';
 }
 function updateUI(){
   scoreEl.textContent=String(score).padStart(6,'0');
@@ -312,8 +358,31 @@ function drawTunnelGraphic(x,y,z,v,ox,oy,s,alpha){
     ctx.strokeStyle='rgba(80,205,220,.72)';ctx.lineWidth=Math.max(1,width*.45);
     ctx.beginPath();ctx.ellipse(0,0,major*.78,minor*.72,0,0,Math.PI*2);ctx.stroke();ctx.restore();
   }
-  drawMouth(far,.32,1.35);
+  drawMouth(far,.92,1.9);
   drawMouth(near,.96,2.0);
+  ctx.restore();
+}
+function drawTunnelEntryOverlay(x,y,z,v,ox,oy,s,ballZ){
+  if(v!==Cell.TZ) return;
+  const axis=tunnelAxis(v);
+  const c={x,y,z};
+  const entry3={x:c.x+axis.x*.47,y:c.y+axis.y*.47,z:c.z+axis.z*.47};
+  const p=project(entry3.x,entry3.y,entry3.z,ox,oy,s);
+  const av=axis;
+  const a=project(c.x-av.x*.47,c.y-av.y*.47,c.z-av.z*.47,ox,oy,s);
+  const b=project(c.x+av.x*.47,c.y+av.y*.47,c.z+av.z*.47,ox,oy,s);
+  const mouthAngle=Math.atan2(b.y-a.y,b.x-a.x)+Math.PI/2;
+  const dist=Math.abs(ballZ-entry3.z);
+  if(dist>.42) return;
+  const alpha=Math.max(0,1-dist/.42);
+  const major=s*.15, minor=s*.065;
+  ctx.save();
+  ctx.translate(p.x,p.y);ctx.rotate(mouthAngle);ctx.globalAlpha=.55+.45*alpha;
+  ctx.shadowColor='rgba(130,245,255,.95)';ctx.shadowBlur=10+10*alpha;
+  ctx.strokeStyle='rgba(235,255,255,.98)';ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.ellipse(0,0,major,minor,0,0,Math.PI*2);ctx.stroke();
+  ctx.shadowBlur=0;ctx.strokeStyle='rgba(75,220,235,.9)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(0,0,major*.78,minor*.72,0,0,Math.PI*2);ctx.stroke();
   ctx.restore();
 }
 function drawVoxel(x,y,z,v,ox,oy,s,alpha=1){
@@ -360,8 +429,6 @@ function drawBreakBurst(b,ox,oy,s){
 function render(){
   const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
   const s=Math.min(w/6.2,h/6.2); const ox=w/2, oy=h*.64;
-  // Guide line from preview to cube.
-  ctx.strokeStyle='rgba(110,231,242,.18)';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(w/2,5);ctx.lineTo(w/2,h*.38);ctx.stroke();ctx.setLineDash([]);
   drawGhostGrid(ox,oy,s);
   const items=[];
   for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY){
@@ -375,6 +442,14 @@ function render(){
   for(const it of items){
     if(it.kind==='voxel') drawVoxel(it.x,it.y,it.z,it.v,ox,oy,s);
     else drawBallAt(it.x,it.y,it.z,ox,oy,s);
+  }
+  // Redraw the first vertical tunnel mouth over the sphere while it crosses
+  // the entrance plane. This creates the same clear “entering” occlusion seen
+  // between lower cubes instead of letting the ball simply float over the rim.
+  if(state==='RESOLVING'&&activeBall){
+    const topZ=N-1;
+    const topCell=grid[activeBall.x][activeBall.y][topZ];
+    drawTunnelEntryOverlay(activeBall.x,activeBall.y,topZ,topCell,ox,oy,s,activeBall.currentZ);
   }
   for(const b of breakBursts) drawBreakBurst(b,ox,oy,s);
   if(rotAnim){
