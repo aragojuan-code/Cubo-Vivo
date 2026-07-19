@@ -3,50 +3,40 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cubo Vivo — Prototipo v0.12</title>
+<title>Cubo Vivo — Prototipo v0.13</title>
 <style>
-:root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;}
+:root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;--ball-size:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 20%,#102431 0,#071016 50%,#04090d 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
 body{display:flex;justify-content:center;align-items:stretch}
-#app{position:relative;width:min(100vw,560px);height:100dvh;display:grid;grid-template-rows:auto 156px 1fr auto;gap:10px;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
-.hud{display:flex;justify-content:space-between;align-items:flex-start;padding:2px 4px}.score{font-weight:800;letter-spacing:.12em;font-size:22px}.sub{font-size:12px;color:var(--muted);margin-top:3px}.status{text-align:right;font-size:12px;color:var(--muted)}
-.preview-wrap{position:relative;border:1px solid rgba(110,231,242,.25);border-radius:18px;background:linear-gradient(180deg,rgba(27,69,84,.3),rgba(8,22,29,.5));box-shadow:inset 0 0 30px rgba(110,231,242,.05);padding:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:visible}
-.preview-title{font-size:11px;letter-spacing:.18em;color:var(--muted);margin-bottom:8px}.preview{position:relative;width:196px;height:112px;margin-top:1px;flex:0 0 auto}.cell{position:absolute;width:52px;height:32px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:transparent;border:0;display:grid;place-items:center}.cell::after{content:'';position:absolute;inset:1px;clip-path:inherit;border:1px solid rgba(110,231,242,.32)}.cell.active,.cell.active::after{background:transparent;filter:none;border-color:rgba(110,231,242,.32)}.dot{position:relative;z-index:2;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 14px rgba(255,107,107,.8);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall .9s cubic-bezier(.18,.72,.22,1) both}@keyframes materializeBall{0%{opacity:0;transform:scale(.18);filter:blur(5px)}35%{opacity:.28;transform:scale(.58);filter:blur(2.8px)}72%{opacity:.84;transform:scale(1.08);filter:blur(.6px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
-.fall-ball{position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;z-index:30;pointer-events:none;opacity:0;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.9);transform:translate(-50%,-50%)}
-.countdown{position:absolute;right:12px;bottom:10px;font-variant-numeric:tabular-nums;font-weight:700;color:var(--cyan)}
-.stage{position:relative;min-height:0;border-radius:22px;background:linear-gradient(180deg,rgba(9,25,33,.1),rgba(4,11,15,.45));overflow:hidden}
-canvas{width:100%;height:100%;display:block;touch-action:none}.message{display:none}
-.controls{display:grid;grid-template-columns:1fr 1fr;gap:12px}.control{min-height:74px;border:1px solid rgba(110,231,242,.32);border-radius:18px;background:linear-gradient(180deg,#173541,#0c2029);color:var(--text);font-size:28px;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 7px 22px rgba(0,0,0,.25);touch-action:manipulation}.control:active{transform:translateY(1px);background:#1b4350}.control:disabled{opacity:.38;filter:saturate(.45);transform:none}.control small{display:block;font-size:10px;letter-spacing:.15em;color:var(--muted);margin-top:4px}.restart{position:absolute;right:10px;top:10px;border:1px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(5,15,20,.6);color:#bfeef3;padding:7px 10px;font-size:11px}
-.legend{position:absolute;left:10px;bottom:10px;font-size:10px;color:var(--muted);line-height:1.45;background:rgba(4,12,16,.55);padding:7px 9px;border-radius:10px}.key{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:-1px}.solid{background:#516b76}.tunnel{background:#65dbe8}
-@media (max-height:700px){#app{grid-template-rows:auto 132px 1fr auto}.control{min-height:62px}.preview{transform:scale(.82);transform-origin:center}}
+#app{position:relative;width:min(100vw,560px);height:100dvh;display:grid;grid-template-rows:auto 142px 1fr;gap:4px;padding:max(10px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))}
+.hud{display:flex;justify-content:space-between;align-items:center;padding:2px 4px}.score{font-weight:800;letter-spacing:.12em;font-size:20px}.sub{font-size:11px;color:var(--muted);margin-top:2px}.restart-top{width:38px;height:38px;border:1px solid rgba(110,231,242,.3);border-radius:50%;background:rgba(8,24,31,.72);color:#c7f8fb;font-size:20px;display:grid;place-items:center;padding:0;touch-action:manipulation}.restart-top:active{transform:scale(.96)}
+.preview-wrap{position:relative;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:none;border:0;box-shadow:none}
+.preview{position:relative;width:220px;height:126px;flex:0 0 auto}.preview-grid{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.preview-grid polygon,.preview-grid line{fill:none;stroke:rgba(110,231,242,.42);stroke-width:1.05;vector-effect:non-scaling-stroke}.cell{position:absolute;width:58px;height:36px;display:grid;place-items:center;pointer-events:none}.dot{position:relative;z-index:2;width:var(--ball-size);height:var(--ball-size);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.82);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall 1.05s cubic-bezier(.18,.72,.22,1) both}@keyframes materializeBall{0%{opacity:0;transform:scale(.16);filter:blur(5px)}32%{opacity:.20;transform:scale(.48);filter:blur(3px)}72%{opacity:.82;transform:scale(1.06);filter:blur(.6px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+.fall-ball{position:absolute;left:0;top:0;width:var(--ball-size);height:var(--ball-size);border-radius:50%;z-index:30;pointer-events:none;opacity:0;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.82);transform:translate(-50%,-50%)}
+.stage{position:relative;min-height:0;overflow:hidden;background:none;border-radius:0}
+canvas{width:100%;height:100%;display:block;touch-action:none}.message,.legend,.countdown{display:none}
+.rotate-circle{position:absolute;z-index:40;bottom:18px;width:54px;height:54px;border:1px solid rgba(110,231,242,.48);border-radius:50%;background:rgba(8,26,34,.76);color:#d9fbff;font-size:30px;line-height:1;display:grid;place-items:center;padding:0;box-shadow:0 6px 20px rgba(0,0,0,.24);touch-action:manipulation}.rotate-circle.left{left:12px}.rotate-circle.right{right:12px}.rotate-circle:active{transform:scale(.96);background:rgba(18,56,68,.85)}.rotate-circle:disabled{opacity:.28;filter:saturate(.45);transform:none}
+@media (max-height:700px){#app{grid-template-rows:auto 118px 1fr}.preview{transform:scale(.86);transform-origin:center}.rotate-circle{bottom:10px;width:48px;height:48px;font-size:27px}}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="fallBall" class="fall-ball" aria-hidden="true"></div>
   <header class="hud">
-    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.12</div></div>
-    <div class="status"><div id="stateLabel">PREPARADO</div><div id="cubeCount">27 cubos</div></div>
+    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.13</div></div>
+    <button id="restart" class="restart-top" aria-label="Reiniciar">↻</button>
   </header>
 
   <section class="preview-wrap">
-    <div class="preview-title">PRÓXIMA BOLA · MATRIZ 3×3</div>
     <div id="preview" class="preview"></div>
-    <div id="countdown" class="countdown">2.0 s</div>
   </section>
 
   <main class="stage">
     <canvas id="game"></canvas>
-    <button id="restart" class="restart">REINICIAR</button>
-    <div id="message" class="message"></div>
-    <div class="legend"><span class="key solid"></span>sólido &nbsp; <span class="key tunnel"></span>túnel</div>
+    <button id="rotateA" class="rotate-circle left" aria-label="Girar eje X">↺</button>
+    <button id="rotateB" class="rotate-circle right" aria-label="Girar eje Y">↻</button>
   </main>
-
-  <footer class="controls">
-    <button id="rotateA" class="control">↺<small>GIRO A · EJE X</small></button>
-    <button id="rotateB" class="control">↻<small>GIRO B · EJE Y</small></button>
-  </footer>
 </div>
 <script>
 (() => {
@@ -54,22 +44,18 @@ canvas{width:100%;height:100%;display:block;touch-action:none}.message{display:n
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
-const stateLabel = document.getElementById('stateLabel');
-const cubeCountEl = document.getElementById('cubeCount');
-const countdownEl = document.getElementById('countdown');
 const previewEl = document.getElementById('preview');
-const msgEl = document.getElementById('message');
 const fallBallEl = document.getElementById('fallBall');
 const appEl = document.getElementById('app');
 const rotateABtn = document.getElementById('rotateA');
 const rotateBBtn = document.getElementById('rotateB');
 
 const N = 3;
-const FALL_TIME = 2.35;
+const FALL_TIME = 2.7;
 // Keep one constant spatial speed before, through and just below the cube.
 const BALL_START_Z = 8;
 const BALL_ENTRY_Z = N + .2;
-const BALL_EXIT_Z = -4.2;
+const BALL_EXIT_Z = -6.2;
 const BALL_SPEED = (BALL_START_Z - BALL_ENTRY_Z) / FALL_TIME;
 // The crossing duration is calculated per wave from the same on-screen speed.
 let traverseDuration = (BALL_ENTRY_Z - BALL_EXIT_Z) / BALL_SPEED;
@@ -104,13 +90,32 @@ function advanceBallQueue(){
 }
 function renderPreview(){
   previewEl.innerHTML='';
-  const cw=52,ch=32, ox=72, oy=4;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('class','preview-grid');
+  svg.setAttribute('viewBox','0 0 220 126');
+  svg.setAttribute('aria-hidden','true');
+  const pts=[];
+  const ox=110,oy=9,cw=72,ch=36;
+  for(let r=0;r<=3;r++){
+    pts[r]=[];
+    for(let c=0;c<=3;c++) pts[r][c]={x:ox+(c-r)*cw/2,y:oy+(c+r)*ch/2};
+  }
+  const outline=document.createElementNS(svg.namespaceURI,'polygon');
+  outline.setAttribute('points',[pts[0][0],pts[0][3],pts[3][3],pts[3][0]].map(p=>`${p.x},${p.y}`).join(' '));
+  svg.appendChild(outline);
+  for(let i=1;i<3;i++){
+    const l1=document.createElementNS(svg.namespaceURI,'line');
+    l1.setAttribute('x1',pts[0][i].x);l1.setAttribute('y1',pts[0][i].y);l1.setAttribute('x2',pts[3][i].x);l1.setAttribute('y2',pts[3][i].y);svg.appendChild(l1);
+    const l2=document.createElementNS(svg.namespaceURI,'line');
+    l2.setAttribute('x1',pts[i][0].x);l2.setAttribute('y1',pts[i][0].y);l2.setAttribute('x2',pts[i][3].x);l2.setAttribute('y2',pts[i][3].y);svg.appendChild(l2);
+  }
+  previewEl.appendChild(svg);
   for(let r=0;r<3;r++) for(let c=0;c<3;c++){
     const isQueued=queuedVisible&&queuedBall&&queuedBall.row===r&&queuedBall.col===c;
-    const d=document.createElement('div'); d.className='cell'+(isQueued?' active':'');
+    const d=document.createElement('div'); d.className='cell';
     d.dataset.row=String(r); d.dataset.col=String(c);
-    d.style.left=(ox+(c-r)*cw*.5)+'px'; d.style.top=(oy+(c+r)*ch*.5)+'px';
-    d.style.zIndex=String(r+c);
+    const center={x:(pts[r][c].x+pts[r][c+1].x+pts[r+1][c+1].x+pts[r+1][c].x)/4,y:(pts[r][c].y+pts[r][c+1].y+pts[r+1][c+1].y+pts[r+1][c].y)/4};
+    d.style.left=(center.x-29)+'px';d.style.top=(center.y-18)+'px';
     if(isQueued){const dot=document.createElement('div');dot.className='dot'+(previewMaterialize?' materializing':'');d.appendChild(dot);} previewEl.appendChild(d);
   }
   previewMaterialize=false;
@@ -145,7 +150,7 @@ function calculateTraverseDuration(ball){
   const canvasRect=canvas.getBoundingClientRect();
   const start={x:cellRect.left+cellRect.width/2-appRect.left,y:cellRect.top+cellRect.height/2-appRect.top};
   const w=canvas.clientWidth,h=canvas.clientHeight;
-  const s=Math.min(w/6.2,h/6.2),ox=w/2,oy=h*.64;
+  const s=Math.min(w/6.2,h/6.2),ox=w/2,oy=h*.69;
   const {x,y}=topColumnFromPreview(ball.row,ball.col);
   const entryLocal=project(x,y,BALL_ENTRY_Z,ox,oy,s);
   const exitLocal=project(x,y,BALL_EXIT_Z,ox,oy,s);
@@ -195,7 +200,7 @@ function processSequentialBreaks(){
   while(activeBall.nextHit<activeBall.hits.length){
     const hit=activeBall.hits[activeBall.nextHit];
     // Break only when the descending sphere reaches this cube's centre.
-    if(z>hit.z+.27) break;
+    if(z>hit.z+.43) break;
     breakHit(hit);
     activeBall.nextHit++;
   }
@@ -239,10 +244,9 @@ function updateFallBallOverlay(){
   const startY=cellRect.top+cellRect.height/2-appRect.top;
   const {x,y}=topColumnFromPreview(currentBall.row,currentBall.col);
   const w=canvas.clientWidth,h=canvas.clientHeight;
-  const s=Math.min(w/6.2,h/6.2), ox=w/2, oy=h*.64;
+  const s=Math.min(w/6.2,h/6.2), ox=w/2, oy=h*.69;
   const ballDiameter=Math.max(2,s*.34);
-  fallBallEl.style.width=ballDiameter+'px';
-  fallBallEl.style.height=ballDiameter+'px';
+  appEl.style.setProperty('--ball-size',ballDiameter+'px');
   const target=project(x,y,BALL_ENTRY_Z,ox,oy,s);
   const endX=canvasRect.left-appRect.left+target.x;
   const endY=canvasRect.top-appRect.top+target.y;
@@ -255,10 +259,6 @@ function updateFallBallOverlay(){
 }
 function updateUI(){
   scoreEl.textContent=String(score).padStart(6,'0');
-  stateLabel.textContent=gameOver?'GAME OVER':state;
-  cubeCountEl.textContent=`${countCubes()} cubos`;
-  const remaining=state==='FALLING'?Math.max(0,FALL_TIME-timer):0;
-  countdownEl.textContent=state==='FALLING'?remaining.toFixed(1)+' s':state==='RESOLVING'?'CRUZANDO':'—';
   const locked = gameOver || state==='RESOLVING' || !!rotAnim;
   rotateABtn.disabled=locked; rotateBBtn.disabled=locked;
 }
@@ -408,7 +408,7 @@ function drawGhostGrid(ox,oy,s){
   }
   ctx.restore();
 }
-function drawBallAt(x,y,zFloat,ox,oy,s){ const p=project(x,y,zFloat,ox,oy,s); const r=s*.17; const g=ctx.createRadialGradient(p.x-r*.35,p.y-r*.45,2,p.x,p.y,r);g.addColorStop(0,'#fff');g.addColorStop(.18,'#ffc0c0');g.addColorStop(.6,'#ff6262');g.addColorStop(1,'#861826');ctx.fillStyle=g;ctx.shadowColor='rgba(255,90,90,.75)';ctx.shadowBlur=16;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+function drawBallAt(x,y,zFloat,ox,oy,s){ const p=project(x,y,zFloat,ox,oy,s); const r=s*.17; const g=ctx.createRadialGradient(p.x-r*.35,p.y-r*.45,2,p.x,p.y,r);g.addColorStop(0,'#fff');g.addColorStop(.08,'#fff');g.addColorStop(.10,'#ffb0b0');g.addColorStop(.55,'#ff6b6b');g.addColorStop(1,'#9b1825');ctx.fillStyle=g;ctx.shadowColor='rgba(255,107,107,.82)';ctx.shadowBlur=16;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
 function drawBreakBurst(b,ox,oy,s){
   const p=project(b.x,b.y,b.z,ox,oy,s);
   const q=Math.min(1,b.t/.34), fade=1-q;
@@ -428,7 +428,7 @@ function drawBreakBurst(b,ox,oy,s){
 }
 function render(){
   const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
-  const s=Math.min(w/6.2,h/6.2); const ox=w/2, oy=h*.64;
+  const s=Math.min(w/6.2,h/6.2); const ox=w/2, oy=h*.69;
   drawGhostGrid(ox,oy,s);
   const items=[];
   for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY){
@@ -452,9 +452,6 @@ function render(){
     drawTunnelEntryOverlay(activeBall.x,activeBall.y,topZ,topCell,ox,oy,s,activeBall.currentZ);
   }
   for(const b of breakBursts) drawBreakBurst(b,ox,oy,s);
-  if(rotAnim){
-    ctx.fillStyle='rgba(110,231,242,.7)';ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillText(rotAnim.type==='A'?'GIRO A':'GIRO B',w/2,h-18);
-  }
 }
 function loop(now){ const dt=Math.min(.05,(now-lastTime)/1000||0);lastTime=now;update(dt);updateUI();render();updateFallBallOverlay();requestAnimationFrame(loop); }
 
