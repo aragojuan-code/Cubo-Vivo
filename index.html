@@ -61,6 +61,7 @@ const scoreEl=document.getElementById('score'),previewEl=document.getElementById
 const rotateABtn=document.getElementById('rotateA'),rotateBBtn=document.getElementById('rotateB');
 
 const N=5, CORE0=1, CORE1=3;
+const OVERFLOW_Z=N;
 const FALL_TIME=5.4, ROT_TIME=.18, FIRST_PREP_TIME=2.45, NEXT_PREP_TIME=0, PRE_DROP_BLINK_TIME=.34, PREVIEW_REVEAL_DELAY=.18, OVERFLOW_FLASH_TIME=.58;
 const ENTRY_Z=N-.5, EXIT_Z=-.5, DEPART_Z=-6.2;
 const Cell=Object.freeze({EMPTY:0,SOLID:1,TX:2,TY:3,TZ:4});
@@ -121,6 +122,15 @@ function getOutsidePxSpeed(piece){
   const sx=cr.left+cr.width/2-appRect.left,sy=cr.top+cr.height/2-appRect.top,ex=can.left-appRect.left+entry.x,ey=can.top-appRect.top+entry.y;
   return Math.hypot(ex-sx,ey-sy)/FALL_TIME;
 }
+function getBlockLandingInfo(piece){
+  const {x,y}=topColumnFromPreview(piece.row,piece.col);let highest=-1;
+  for(let z=N-1;z>=0;z--)if(grid[x][y][z]!==Cell.EMPTY){highest=z;break;}
+  return {x,y,highest,unsupported:highest===-1,overflow:highest===N-1};
+}
+function getFallingTargetZ(piece){
+  if(!piece||piece.type==='ball')return ENTRY_Z;
+  return getBlockLandingInfo(piece).overflow?OVERFLOW_Z:ENTRY_Z;
+}
 function resolvePiece(){currentPiece.type==='ball'?resolveBall():resolveBlock();}
 function resolveBall(){
   const {x,y}=topColumnFromPreview(currentPiece.row,currentPiece.col),hits=[];let clear=true;
@@ -129,10 +139,10 @@ function resolveBall(){
   activeBall={x,y,currentZ:ENTRY_Z,zSpeed,duration,clear,hits,nextHit:0,nextTunnel:0};state='RESOLVING';timer=0;
 }
 function resolveBlock(){
-  const {x,y}=topColumnFromPreview(currentPiece.row,currentPiece.col);let highest=-1;for(let z=N-1;z>=0;z--)if(grid[x][y][z]!==Cell.EMPTY){highest=z;break;}
-  const unsupported=highest===-1,overflow=highest===N-1,targetZ=unsupported?EXIT_Z:Math.min(N-1,highest+1),cellType=currentPiece.type==='solid'?Cell.SOLID:Cell.TZ;
+  const {x,y,highest,unsupported,overflow}=getBlockLandingInfo(currentPiece);
+  const targetZ=unsupported?EXIT_Z:(overflow?OVERFLOW_Z:highest+1),cellType=currentPiece.type==='solid'?Cell.SOLID:Cell.TZ;
   const pxSpeed=getOutsidePxSpeed(currentPiece),zSpeed=pxSpeed/(getScale()*.62);
-  activeBlock={x,y,currentZ:ENTRY_Z,targetZ,zSpeed,cellType,overflow,unsupported,flashT:0};state='RESOLVING';timer=0;
+  activeBlock={x,y,currentZ:overflow?OVERFLOW_Z:ENTRY_Z,targetZ,zSpeed,cellType,overflow,unsupported,flashT:0};state='RESOLVING';timer=0;
 }
 function countCubes(){let n=0;for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY)n++;return n;}
 function breakHit(p){if(grid[p.x][p.y][p.z]===Cell.EMPTY)return;grid[p.x][p.y][p.z]=Cell.EMPTY;score+=10;breakBursts.push({x:p.x,y:p.y,z:p.z,t:0});playSound('break');}
@@ -175,7 +185,7 @@ function finishStructuralCollapse(){
   advanceQueue(true);
 }
 function finishBallAtExit(){if(!activeBall)return;departingBalls.push({x:activeBall.x,y:activeBall.y,z:activeBall.currentZ,zSpeed:activeBall.zSpeed});activeBall=null;if(startStructuralCollapse())return;if(countCubes()===0){gameOver=true;return;}advanceQueue(true);}
-function finishBlock(){if(!activeBlock)return;if(activeBlock.unsupported){departingBlocks.push({x:activeBlock.x,y:activeBlock.y,z:activeBlock.currentZ,zSpeed:activeBlock.zSpeed,cellType:activeBlock.cellType});activeBlock=null;advanceQueue(true);return;}if(activeBlock.overflow){score+=10;playSound('break');breakBursts.push({x:activeBlock.x,y:activeBlock.y,z:ENTRY_Z,t:0});}else{grid[activeBlock.x][activeBlock.y][activeBlock.targetZ]=activeBlock.cellType;playSound('land');}activeBlock=null;advanceQueue(true);}
+function finishBlock(){if(!activeBlock)return;if(activeBlock.unsupported){departingBlocks.push({x:activeBlock.x,y:activeBlock.y,z:activeBlock.currentZ,zSpeed:activeBlock.zSpeed,cellType:activeBlock.cellType});activeBlock=null;advanceQueue(true);return;}if(activeBlock.overflow){score+=10;playSound('break');breakBursts.push({x:activeBlock.x,y:activeBlock.y,z:OVERFLOW_Z,t:0});}else{grid[activeBlock.x][activeBlock.y][activeBlock.targetZ]=activeBlock.cellType;playSound('land');}activeBlock=null;advanceQueue(true);}
 
 function unlockAudio(){
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;if(!audioCtx)audioCtx=new AC({latencyHint:'interactive'});
@@ -199,7 +209,7 @@ function update(dt){
     if(activeBall.currentZ<=EXIT_Z)finishBallAtExit();
   }else if(state==='RESOLVING'&&activeBlock){
     if(activeBlock.overflow){
-      activeBlock.currentZ=ENTRY_Z;
+      activeBlock.currentZ=OVERFLOW_Z;
       activeBlock.flashT+=dt;
       if(activeBlock.flashT>=OVERFLOW_FLASH_TIME)finishBlock();
     }else{
@@ -220,7 +230,7 @@ function updateFallBallOverlay(){
   if(state!=='FALLING'||!currentPiece){fallBallEl.style.opacity='0';return;}
   const cell=previewEl.querySelector(`.cell[data-row="${currentPiece.row}"][data-col="${currentPiece.col}"]`);if(!cell)return;
   fallBallEl.className='fall-ball '+currentPiece.type;setPieceVisual(fallBallEl,currentPiece.type);if(currentPiece.type!=='ball'){fallBallEl.style.opacity='0';return;}
-  const ar=appEl.getBoundingClientRect(),cr=cell.getBoundingClientRect(),can=canvas.getBoundingClientRect(),s=getScale(),ox=canvas.clientWidth/2,oy=canvas.clientHeight*.72,{x,y}=topColumnFromPreview(currentPiece.row,currentPiece.col),target=project(x,y,ENTRY_Z,ox,oy,s);
+  const ar=appEl.getBoundingClientRect(),cr=cell.getBoundingClientRect(),can=canvas.getBoundingClientRect(),s=getScale(),ox=canvas.clientWidth/2,oy=canvas.clientHeight*.72,{x,y}=topColumnFromPreview(currentPiece.row,currentPiece.col),target=project(x,y,getFallingTargetZ(currentPiece),ox,oy,s);
   const sx=cr.left+cr.width/2-ar.left,sy=cr.top+cr.height/2-ar.top,ex=can.left-ar.left+target.x,ey=can.top-ar.top+target.y,p=Math.max(0,Math.min(1,timer/FALL_TIME));
   fallBallEl.style.left=(sx+(ex-sx)*p)+'px';fallBallEl.style.top=(sy+(ey-sy)*p)+'px';fallBallEl.style.opacity='1';
 }
@@ -255,7 +265,7 @@ function drawPieceOverlay(){
     const cell=previewEl.querySelector(`.cell[data-row="${piece.row}"][data-col="${piece.col}"]`);if(!cell)return;
     const cr=cell.getBoundingClientRect();let cx=cr.left+cr.width/2-ar.left,cy=cr.top+cr.height/2-ar.top;
     if(falling){
-      const ox=canvas.clientWidth/2,oy=canvas.clientHeight*.72,{x,y}=topColumnFromPreview(piece.row,piece.col),target=project(x,y,ENTRY_Z,ox,oy,s),p=Math.max(0,Math.min(1,timer/FALL_TIME));
+      const ox=canvas.clientWidth/2,oy=canvas.clientHeight*.72,{x,y}=topColumnFromPreview(piece.row,piece.col),target=project(x,y,getFallingTargetZ(piece),ox,oy,s),p=Math.max(0,Math.min(1,timer/FALL_TIME));
       const ex=can.left-ar.left+target.x,ey=can.top-ar.top+target.y;cx+=(ex-cx)*p;cy+=(ey-cy)*p;
     }
     drawOverlayVoxel(cx,cy,piece.type,s,alpha);
