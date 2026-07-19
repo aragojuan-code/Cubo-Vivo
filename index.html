@@ -64,12 +64,12 @@ const N=5, CORE0=1, CORE1=3;
 const FALL_TIME=5.4, ROT_TIME=.18, FIRST_PREP_TIME=2.45, NEXT_PREP_TIME=0, PRE_DROP_BLINK_TIME=.34, PREVIEW_REVEAL_DELAY=.18, OVERFLOW_FLASH_TIME=.58;
 const ENTRY_Z=N-.5, EXIT_Z=-.5, DEPART_Z=-6.2;
 const Cell=Object.freeze({EMPTY:0,SOLID:1,TX:2,TY:3,TZ:4});
-let grid,score,state,timer,currentPiece,queuedPiece,activeBall,activeBlock,looseBlocks,departingBalls,rotAnim,gameOver,lastTime,breakBursts,previewMaterialize,previewRevealTimer,queuedVisible,prepareDuration,previewBlinking,audioCtx,audioUnlocked=false,soundEnabled=true;
+let grid,score,state,timer,currentPiece,queuedPiece,activeBall,activeBlock,looseBlocks,departingBalls,departingBlocks,rotAnim,gameOver,lastTime,breakBursts,previewMaterialize,previewRevealTimer,queuedVisible,prepareDuration,previewBlinking,audioCtx,audioUnlocked=false,soundEnabled=true;
 
 function makeGrid(){return Array.from({length:N},()=>Array.from({length:N},()=>Array(N).fill(Cell.EMPTY)));}
 function setCell(x,y,z,v){grid[x][y][z]=v;}
 function reset(){
-  grid=makeGrid();score=0;gameOver=false;rotAnim=null;activeBall=null;activeBlock=null;looseBlocks=[];departingBalls=[];breakBursts=[];previewBlinking=false;
+  grid=makeGrid();score=0;gameOver=false;rotAnim=null;activeBall=null;activeBlock=null;looseBlocks=[];departingBalls=[];departingBlocks=[];breakBursts=[];previewBlinking=false;
   for(let x=CORE0;x<=CORE1;x++)for(let y=CORE0;y<=CORE1;y++)for(let z=CORE0;z<=CORE1;z++)setCell(x,y,z,Cell.SOLID);
   for(let x=CORE0;x<=CORE1;x++)setCell(x,2,2,Cell.TX);
   for(let y=CORE0;y<=CORE1;y++)setCell(2,y,1,Cell.TY);
@@ -130,7 +130,7 @@ function resolveBall(){
 }
 function resolveBlock(){
   const {x,y}=topColumnFromPreview(currentPiece.row,currentPiece.col);let highest=-1;for(let z=N-1;z>=0;z--)if(grid[x][y][z]!==Cell.EMPTY){highest=z;break;}
-  const unsupported=highest===-1,overflow=highest===N-1,targetZ=unsupported?DEPART_Z:Math.min(N-1,highest+1),cellType=currentPiece.type==='solid'?Cell.SOLID:Cell.TZ;
+  const unsupported=highest===-1,overflow=highest===N-1,targetZ=unsupported?EXIT_Z:Math.min(N-1,highest+1),cellType=currentPiece.type==='solid'?Cell.SOLID:Cell.TZ;
   const pxSpeed=getOutsidePxSpeed(currentPiece),zSpeed=pxSpeed/(getScale()*.62);
   activeBlock={x,y,currentZ:ENTRY_Z,targetZ,zSpeed,cellType,overflow,unsupported,flashT:0};state='RESOLVING';timer=0;
 }
@@ -175,7 +175,7 @@ function finishStructuralCollapse(){
   advanceQueue(true);
 }
 function finishBallAtExit(){if(!activeBall)return;departingBalls.push({x:activeBall.x,y:activeBall.y,z:activeBall.currentZ,zSpeed:activeBall.zSpeed});activeBall=null;if(startStructuralCollapse())return;if(countCubes()===0){gameOver=true;return;}advanceQueue(true);}
-function finishBlock(){if(!activeBlock)return;if(activeBlock.unsupported){activeBlock=null;advanceQueue(true);return;}if(activeBlock.overflow){score+=10;playSound('break');breakBursts.push({x:activeBlock.x,y:activeBlock.y,z:ENTRY_Z,t:0});}else{grid[activeBlock.x][activeBlock.y][activeBlock.targetZ]=activeBlock.cellType;playSound('land');}activeBlock=null;advanceQueue(true);}
+function finishBlock(){if(!activeBlock)return;if(activeBlock.unsupported){departingBlocks.push({x:activeBlock.x,y:activeBlock.y,z:activeBlock.currentZ,zSpeed:activeBlock.zSpeed,cellType:activeBlock.cellType});activeBlock=null;advanceQueue(true);return;}if(activeBlock.overflow){score+=10;playSound('break');breakBursts.push({x:activeBlock.x,y:activeBlock.y,z:ENTRY_Z,t:0});}else{grid[activeBlock.x][activeBlock.y][activeBlock.targetZ]=activeBlock.cellType;playSound('land');}activeBlock=null;advanceQueue(true);}
 
 function unlockAudio(){
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;if(!audioCtx)audioCtx=new AC({latencyHint:'interactive'});
@@ -213,6 +213,7 @@ function update(dt){
     if(done)finishStructuralCollapse();
   }
   for(const b of departingBalls)b.z-=b.zSpeed*dt;departingBalls=departingBalls.filter(b=>b.z>DEPART_Z);
+  for(const b of departingBlocks)b.z-=b.zSpeed*dt;departingBlocks=departingBlocks.filter(b=>b.z>DEPART_Z);
   for(const b of breakBursts)b.t+=dt;breakBursts=breakBursts.filter(b=>b.t<.34);
 }
 function updateFallBallOverlay(){
@@ -299,10 +300,11 @@ function drawBreakBurst(b,ox,oy,s){const p=project(b.x,b.y,b.z,ox,oy,s),q=Math.m
 function render(){
   const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);const s=getScale(),ox=w/2,oy=h*.72,items=buildGhostGridItems(ox,oy,s);
   for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY)items.push(...voxelFaceItems(x,y,z,grid[x][y][z],ox,oy,s));
-  if(activeBall)items.push({kind:'ball',x:activeBall.x,y:activeBall.y,z:activeBall.currentZ,depth:cameraDepth(activeBall)});
+  if(activeBall)items.push({kind:'ball',x:activeBall.x,y:activeBall.y,z:activeBall.currentZ,depth:cameraDepth({x:activeBall.x,y:activeBall.y,z:activeBall.currentZ})});
   if(activeBlock){const v=activeBlock.cellType;items.push(...voxelFaceItems(activeBlock.x,activeBlock.y,activeBlock.currentZ,v,ox,oy,s,'fallblock',activeBlock.overflow?activeBlock.flashT:null));}
   for(const b of looseBlocks)items.push(...voxelFaceItems(b.x,b.y,b.currentZ,b.cellType,ox,oy,s,'fallblock'));
   for(const b of departingBalls)items.push({kind:'ball',x:b.x,y:b.y,z:b.z,depth:cameraDepth(b)});
+  for(const b of departingBlocks)items.push(...voxelFaceItems(b.x,b.y,b.z,b.cellType,ox,oy,s,'departingblock'));
   items.sort((a,b)=>a.depth-b.depth);
   for(const it of items){
     if(it.kind==='face')drawFaceItem(it);
