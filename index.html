@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cubo Vivo — Prototipo v0.13</title>
+<title>Cubo Vivo — Prototipo v0.14</title>
 <style>
 :root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;--ball-size:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -12,7 +12,7 @@ body{display:flex;justify-content:center;align-items:stretch}
 #app{position:relative;width:min(100vw,560px);height:100dvh;display:grid;grid-template-rows:auto 142px 1fr;gap:4px;padding:max(10px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))}
 .hud{display:flex;justify-content:space-between;align-items:center;padding:2px 4px}.score{font-weight:800;letter-spacing:.12em;font-size:20px}.sub{font-size:11px;color:var(--muted);margin-top:2px}.restart-top{width:38px;height:38px;border:1px solid rgba(110,231,242,.3);border-radius:50%;background:rgba(8,24,31,.72);color:#c7f8fb;font-size:20px;display:grid;place-items:center;padding:0;touch-action:manipulation}.restart-top:active{transform:scale(.96)}
 .preview-wrap{position:relative;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:none;border:0;box-shadow:none}
-.preview{position:relative;width:220px;height:126px;flex:0 0 auto}.preview-grid{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.preview-grid polygon,.preview-grid line{fill:none;stroke:rgba(110,231,242,.42);stroke-width:1.05;vector-effect:non-scaling-stroke}.cell{position:absolute;width:58px;height:36px;display:grid;place-items:center;pointer-events:none}.dot{position:relative;z-index:2;width:var(--ball-size);height:var(--ball-size);border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.82);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall 1.05s cubic-bezier(.18,.72,.22,1) both}@keyframes materializeBall{0%{opacity:0;transform:scale(.16);filter:blur(5px)}32%{opacity:.20;transform:scale(.48);filter:blur(3px)}72%{opacity:.82;transform:scale(1.06);filter:blur(.6px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+.preview{position:relative;width:220px;height:126px;flex:0 0 auto}.preview-grid{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.preview-grid polygon,.preview-grid line{fill:none;stroke:rgba(110,231,242,.42);stroke-width:1.05;vector-effect:non-scaling-stroke}.cell{position:absolute;width:58px;height:36px;display:grid;place-items:center;pointer-events:none}.dot{position:relative;z-index:2;width:var(--ball-size);height:var(--ball-size);border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5eded 0 8%,#b99a9d 12%,#8d676d 56%,#4b3238 100%);box-shadow:0 0 12px rgba(154,105,112,.48);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall 1.15s cubic-bezier(.18,.72,.22,1) both}@keyframes materializeBall{0%{opacity:0;transform:scale(.12);filter:blur(6px)}28%{opacity:.16;transform:scale(.42);filter:blur(3.8px)}72%{opacity:.76;transform:scale(1.04);filter:blur(.8px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 .fall-ball{position:absolute;left:0;top:0;width:var(--ball-size);height:var(--ball-size);border-radius:50%;z-index:30;pointer-events:none;opacity:0;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.82);transform:translate(-50%,-50%)}
 .stage{position:relative;min-height:0;overflow:hidden;background:none;border-radius:0}
 canvas{width:100%;height:100%;display:block;touch-action:none}.message,.legend,.countdown{display:none}
@@ -24,7 +24,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none}.message,.legend,.
 <div id="app">
   <div id="fallBall" class="fall-ball" aria-hidden="true"></div>
   <header class="hud">
-    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.13</div></div>
+    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.14</div></div>
     <button id="restart" class="restart-top" aria-label="Reiniciar">↻</button>
   </header>
 
@@ -60,8 +60,10 @@ const BALL_SPEED = (BALL_START_Z - BALL_ENTRY_Z) / FALL_TIME;
 // The crossing duration is calculated per wave from the same on-screen speed.
 let traverseDuration = (BALL_ENTRY_Z - BALL_EXIT_Z) / BALL_SPEED;
 const ROT_TIME = 0.18;
+const FIRST_PREP_TIME = 1.55;
+const NEXT_PREP_TIME = 0.48;
 const Cell = Object.freeze({ EMPTY:0, SOLID:1, TX:2, TY:3, TZ:4 });
-let grid, score, state, timer, currentBall, queuedBall, activeBall, rotAnim, gameOver, lastTime, breakBursts, previewMaterialize, previewRevealTimer, queuedVisible;
+let grid, score, state, timer, currentBall, queuedBall, activeBall, rotAnim, gameOver, lastTime, breakBursts, previewMaterialize, previewRevealTimer, queuedVisible, prepareDuration;
 
 function makeGrid(){ return Array.from({length:N},()=>Array.from({length:N},()=>Array(N).fill(Cell.SOLID))); }
 function setCell(x,y,z,v){ grid[x][y][z]=v; }
@@ -71,8 +73,8 @@ function reset(){
   for(let x=0;x<N;x++) setCell(x,1,1,Cell.TX);       // central X tunnel
   for(let y=0;y<N;y++) setCell(1,y,0,Cell.TY);       // edge Y tunnel
   for(let z=0;z<N;z++) setCell(0,0,z,Cell.TZ);       // corner Z tunnel
-  currentBall=randomBall(); queuedBall=randomBall(currentBall); previewMaterialize=false; previewRevealTimer=0; queuedVisible=false; renderPreview();
-  state='FALLING'; timer=0; lastTime=performance.now(); fallBallEl.style.opacity='0'; updateUI();
+  currentBall=randomBall(); queuedBall=randomBall(currentBall); previewMaterialize=true; previewRevealTimer=0; queuedVisible=false; prepareDuration=FIRST_PREP_TIME;
+  state='PREPARING'; timer=0; renderPreview(); lastTime=performance.now(); fallBallEl.style.opacity='0'; updateUI();
 }
 function randomBall(exclude=null){
   let ball;
@@ -86,6 +88,9 @@ function advanceBallQueue(){
   previewMaterialize=false;
   previewRevealTimer=0;
   queuedVisible=false;
+  prepareDuration=NEXT_PREP_TIME;
+  state='PREPARING';
+  timer=0;
   renderPreview();
 }
 function renderPreview(){
@@ -111,7 +116,8 @@ function renderPreview(){
   }
   previewEl.appendChild(svg);
   for(let r=0;r<3;r++) for(let c=0;c<3;c++){
-    const isQueued=queuedVisible&&queuedBall&&queuedBall.row===r&&queuedBall.col===c;
+    const shownBall=state==='PREPARING'?currentBall:(queuedVisible?queuedBall:null);
+    const isQueued=shownBall&&shownBall.row===r&&shownBall.col===c;
     const d=document.createElement('div'); d.className='cell';
     d.dataset.row=String(r); d.dataset.col=String(c);
     const center={x:(pts[r][c].x+pts[r][c+1].x+pts[r+1][c+1].x+pts[r+1][c].x)/4,y:(pts[r][c].y+pts[r][c+1].y+pts[r+1][c+1].y+pts[r+1][c].y)/4};
@@ -185,7 +191,7 @@ function finishResolution(){
   activeBall=null;
   const count=countCubes();
   if(count===0){ gameOver=true; state='GAME OVER'; updateUI(); return; }
-  advanceBallQueue(); state='FALLING'; timer=0;
+  advanceBallQueue();
 }
 function countCubes(){let n=0;for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY)n++;return n;}
 function breakHit(p){
@@ -212,9 +218,16 @@ function update(dt){
     if(rotAnim.t>=ROT_TIME){ if(rotAnim.type==='A') rotateGridX(); else rotateGridY(); rotAnim=null; }
   }
   timer+=dt;
+  if(state==='PREPARING' && timer>=prepareDuration){
+    state='FALLING';
+    timer=0;
+    previewRevealTimer=0;
+    queuedVisible=false;
+    renderPreview();
+  }
   if(state==='FALLING' && !queuedVisible){
     previewRevealTimer+=dt;
-    if(previewRevealTimer>=.32){
+    if(previewRevealTimer>=.42){
       queuedVisible=true;
       previewMaterialize=true;
       renderPreview();
@@ -397,15 +410,33 @@ function drawVoxel(x,y,z,v,ox,oy,s,alpha=1){
   ctx.restore();
   if(isTunnel) drawTunnelGraphic(x,y,z,v,ox,oy,s,alpha);
 }
-function drawGhostGrid(ox,oy,s){
-  ctx.save();ctx.globalAlpha=.22;ctx.strokeStyle='rgba(140,225,235,.36)';ctx.lineWidth=.75;
-  for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++){
-    const g=cubeGeometry(x,y,z,ox,oy,s);
-    const visible=g.faces.filter(f=>f.area>0.01).sort((a,b)=>a.screenY-b.screenY);
-    for(const f of visible){
-      const pts=f.points;ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i].x,pts[i].y);ctx.closePath();ctx.stroke();
-    }
-  }
+function buildGhostGridItems(ox,oy,s){
+  const lines=[];
+  const add=(a,b)=>{
+    const ra=rotatePointAroundCenter(a.x,a.y,a.z);
+    const rb=rotatePointAroundCenter(b.x,b.y,b.z);
+    lines.push({
+      kind:'gridline',
+      a:project(ra.x,ra.y,ra.z,ox,oy,s),
+      b:project(rb.x,rb.y,rb.z,ox,oy,s),
+      depth:(ra.x+ra.y+ra.z+rb.x+rb.y+rb.z)/2
+    });
+  };
+  // Unique lattice edges of the complete 3×3×3 guide volume.
+  for(let i=0;i<N;i++) for(let j=0;j<=N;j++) for(let k=0;k<=N;k++)
+    add({x:i-.5,y:j-.5,z:k-.5},{x:i+.5,y:j-.5,z:k-.5});
+  for(let i=0;i<=N;i++) for(let j=0;j<N;j++) for(let k=0;k<=N;k++)
+    add({x:i-.5,y:j-.5,z:k-.5},{x:i-.5,y:j+.5,z:k-.5});
+  for(let i=0;i<=N;i++) for(let j=0;j<=N;j++) for(let k=0;k<N;k++)
+    add({x:i-.5,y:j-.5,z:k-.5},{x:i-.5,y:j-.5,z:k+.5});
+  return lines;
+}
+function drawGhostLine(it){
+  ctx.save();
+  ctx.globalAlpha=.22;
+  ctx.strokeStyle='rgba(140,225,235,.36)';
+  ctx.lineWidth=.75;
+  ctx.beginPath();ctx.moveTo(it.a.x,it.a.y);ctx.lineTo(it.b.x,it.b.y);ctx.stroke();
   ctx.restore();
 }
 function drawBallAt(x,y,zFloat,ox,oy,s){ const p=project(x,y,zFloat,ox,oy,s); const r=s*.17; const g=ctx.createRadialGradient(p.x-r*.35,p.y-r*.45,2,p.x,p.y,r);g.addColorStop(0,'#fff');g.addColorStop(.08,'#fff');g.addColorStop(.10,'#ffb0b0');g.addColorStop(.55,'#ff6b6b');g.addColorStop(1,'#9b1825');ctx.fillStyle=g;ctx.shadowColor='rgba(255,107,107,.82)';ctx.shadowBlur=16;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
@@ -429,8 +460,7 @@ function drawBreakBurst(b,ox,oy,s){
 function render(){
   const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
   const s=Math.min(w/6.2,h/6.2); const ox=w/2, oy=h*.69;
-  drawGhostGrid(ox,oy,s);
-  const items=[];
+  const items=buildGhostGridItems(ox,oy,s);
   for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY){
     const rp=rotatePointAroundCenter(x,y,z); items.push({kind:'voxel',x,y,z,v:grid[x][y][z],depth:rp.x+rp.y+rp.z});
   }
@@ -441,6 +471,7 @@ function render(){
   items.sort((a,b)=>a.depth-b.depth);
   for(const it of items){
     if(it.kind==='voxel') drawVoxel(it.x,it.y,it.z,it.v,ox,oy,s);
+    else if(it.kind==='gridline') drawGhostLine(it);
     else drawBallAt(it.x,it.y,it.z,ox,oy,s);
   }
   // Redraw the first vertical tunnel mouth over the sphere while it crosses
