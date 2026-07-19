@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cubo Vivo — Prototipo v0.14</title>
+<title>Cubo Vivo — Prototipo v0.15</title>
 <style>
 :root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;--ball-size:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -11,7 +11,7 @@ html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 20%,#102
 body{display:flex;justify-content:center;align-items:stretch}
 #app{position:relative;width:min(100vw,560px);height:100dvh;display:grid;grid-template-rows:auto 142px 1fr;gap:4px;padding:max(10px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))}
 .hud{display:flex;justify-content:space-between;align-items:center;padding:2px 4px}.score{font-weight:800;letter-spacing:.12em;font-size:20px}.sub{font-size:11px;color:var(--muted);margin-top:2px}.restart-top{width:38px;height:38px;border:1px solid rgba(110,231,242,.3);border-radius:50%;background:rgba(8,24,31,.72);color:#c7f8fb;font-size:20px;display:grid;place-items:center;padding:0;touch-action:manipulation}.restart-top:active{transform:scale(.96)}
-.preview-wrap{position:relative;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:none;border:0;box-shadow:none}
+.preview-wrap{position:relative;z-index:40;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:none;border:0;box-shadow:none}
 .preview{position:relative;width:220px;height:126px;flex:0 0 auto}.preview-grid{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.preview-grid polygon,.preview-grid line{fill:none;stroke:rgba(110,231,242,.42);stroke-width:1.05;vector-effect:non-scaling-stroke}.cell{position:absolute;width:58px;height:36px;display:grid;place-items:center;pointer-events:none}.dot{position:relative;z-index:2;width:var(--ball-size);height:var(--ball-size);border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5eded 0 8%,#b99a9d 12%,#8d676d 56%,#4b3238 100%);box-shadow:0 0 12px rgba(154,105,112,.48);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall 1.15s cubic-bezier(.18,.72,.22,1) both}@keyframes materializeBall{0%{opacity:0;transform:scale(.12);filter:blur(6px)}28%{opacity:.16;transform:scale(.42);filter:blur(3.8px)}72%{opacity:.76;transform:scale(1.04);filter:blur(.8px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 .fall-ball{position:absolute;left:0;top:0;width:var(--ball-size);height:var(--ball-size);border-radius:50%;z-index:30;pointer-events:none;opacity:0;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.82);transform:translate(-50%,-50%)}
 .stage{position:relative;min-height:0;overflow:hidden;background:none;border-radius:0}
@@ -24,7 +24,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none}.message,.legend,.
 <div id="app">
   <div id="fallBall" class="fall-ball" aria-hidden="true"></div>
   <header class="hud">
-    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.14</div></div>
+    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.15</div></div>
     <button id="restart" class="restart-top" aria-label="Reiniciar">↻</button>
   </header>
 
@@ -51,7 +51,7 @@ const rotateABtn = document.getElementById('rotateA');
 const rotateBBtn = document.getElementById('rotateB');
 
 const N = 3;
-const FALL_TIME = 2.7;
+const FALL_TIME = 5.4;
 // Keep one constant spatial speed before, through and just below the cube.
 const BALL_START_Z = 8;
 const BALL_ENTRY_Z = N + .2;
@@ -136,7 +136,8 @@ function rotateGridX(){
   for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++){
     let v=grid[x][y][z]; let nv=v;
     if(v===Cell.TY) nv=Cell.TZ; else if(v===Cell.TZ) nv=Cell.TY;
-    ng[x][N-1-z][y]=nv;
+    // Botón izquierdo: giro de -90° alrededor de X.
+    ng[x][z][N-1-y]=nv;
   } grid=ng;
 }
 function rotateGridY(){
@@ -243,6 +244,10 @@ function update(dt){
   for(const b of breakBursts) b.t+=dt;
   breakBursts=breakBursts.filter(b=>b.t<.34);
 }
+function syncBallSize(){
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  const s=Math.min(w/6.2,h/6.2);
+}
 function updateFallBallOverlay(){
   if(state!=='FALLING' || !currentBall){
     fallBallEl.style.opacity='0';
@@ -258,8 +263,6 @@ function updateFallBallOverlay(){
   const {x,y}=topColumnFromPreview(currentBall.row,currentBall.col);
   const w=canvas.clientWidth,h=canvas.clientHeight;
   const s=Math.min(w/6.2,h/6.2), ox=w/2, oy=h*.69;
-  const ballDiameter=Math.max(2,s*.34);
-  appEl.style.setProperty('--ball-size',ballDiameter+'px');
   const target=project(x,y,BALL_ENTRY_Z,ox,oy,s);
   const endX=canvasRect.left-appRect.left+target.x;
   const endY=canvasRect.top-appRect.top+target.y;
@@ -278,12 +281,14 @@ function updateUI(){
 function resize(){
   const r=canvas.getBoundingClientRect(); const dpr=Math.min(2,window.devicePixelRatio||1);
   canvas.width=Math.round(r.width*dpr);canvas.height=Math.round(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+  syncBallSize();
 }
 function project(x,y,z, ox,oy,s){ return {x:ox+(x-y)*s*.56,y:oy+(x+y)*s*.30-z*s*.62}; }
 function easeInOut(t){ return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; }
 function rotatePointAroundCenter(x,y,z){
   if(!rotAnim) return {x,y,z};
-  const a=easeInOut(Math.min(1,rotAnim.t/ROT_TIME))*Math.PI/2;
+  const direction=rotAnim.type==='A'?-1:1;
+  const a=easeInOut(Math.min(1,rotAnim.t/ROT_TIME))*Math.PI/2*direction;
   const cx=(N-1)/2, cy=(N-1)/2, cz=(N-1)/2;
   let X=x-cx,Y=y-cy,Z=z-cz,nx=X,ny=Y,nz=Z;
   if(rotAnim.type==='A'){ ny=Y*Math.cos(a)-Z*Math.sin(a); nz=Y*Math.sin(a)+Z*Math.cos(a); }
@@ -292,7 +297,8 @@ function rotatePointAroundCenter(x,y,z){
 }
 function transformVector(x,y,z){
   if(!rotAnim) return {x,y,z};
-  const a=easeInOut(Math.min(1,rotAnim.t/ROT_TIME))*Math.PI/2;
+  const direction=rotAnim.type==='A'?-1:1;
+  const a=easeInOut(Math.min(1,rotAnim.t/ROT_TIME))*Math.PI/2*direction;
   if(rotAnim.type==='A') return {x,y:y*Math.cos(a)-z*Math.sin(a),z:y*Math.sin(a)+z*Math.cos(a)};
   return {x:x*Math.cos(a)+z*Math.sin(a),y,z:-x*Math.sin(a)+z*Math.cos(a)};
 }
@@ -439,7 +445,17 @@ function drawGhostLine(it){
   ctx.beginPath();ctx.moveTo(it.a.x,it.a.y);ctx.lineTo(it.b.x,it.b.y);ctx.stroke();
   ctx.restore();
 }
-function drawBallAt(x,y,zFloat,ox,oy,s){ const p=project(x,y,zFloat,ox,oy,s); const r=s*.17; const g=ctx.createRadialGradient(p.x-r*.35,p.y-r*.45,2,p.x,p.y,r);g.addColorStop(0,'#fff');g.addColorStop(.08,'#fff');g.addColorStop(.10,'#ffb0b0');g.addColorStop(.55,'#ff6b6b');g.addColorStop(1,'#9b1825');ctx.fillStyle=g;ctx.shadowColor='rgba(255,107,107,.82)';ctx.shadowBlur=16;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+function drawBallAt(x,y,zFloat,ox,oy,s){
+  const p=project(x,y,zFloat,ox,oy,s); const r=s*.17;
+  ctx.save();
+  const halo=ctx.createRadialGradient(p.x,p.y,r*.15,p.x,p.y,r*1.75);
+  halo.addColorStop(0,'rgba(255,107,107,.34)');halo.addColorStop(1,'rgba(255,107,107,0)');
+  ctx.fillStyle=halo;ctx.beginPath();ctx.arc(p.x,p.y,r*1.75,0,Math.PI*2);ctx.fill();
+  const g=ctx.createRadialGradient(p.x-r*.35,p.y-r*.45,2,p.x,p.y,r);
+  g.addColorStop(0,'#fff');g.addColorStop(.08,'#fff');g.addColorStop(.10,'#ffb0b0');g.addColorStop(.55,'#ff6b6b');g.addColorStop(1,'#9b1825');
+  ctx.fillStyle=g;ctx.shadowColor='rgba(255,107,107,.95)';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
 function drawBreakBurst(b,ox,oy,s){
   const p=project(b.x,b.y,b.z,ox,oy,s);
   const q=Math.min(1,b.t/.34), fade=1-q;
