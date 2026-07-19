@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cubo Vivo — Prototipo v0.15</title>
+<title>Cubo Vivo — Prototipo v0.16</title>
 <style>
 :root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;--ball-size:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -12,7 +12,7 @@ body{display:flex;justify-content:center;align-items:stretch}
 #app{position:relative;width:min(100vw,560px);height:100dvh;display:grid;grid-template-rows:auto 142px 1fr;gap:4px;padding:max(10px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))}
 .hud{display:flex;justify-content:space-between;align-items:center;padding:2px 4px}.score{font-weight:800;letter-spacing:.12em;font-size:20px}.sub{font-size:11px;color:var(--muted);margin-top:2px}.restart-top{width:38px;height:38px;border:1px solid rgba(110,231,242,.3);border-radius:50%;background:rgba(8,24,31,.72);color:#c7f8fb;font-size:20px;display:grid;place-items:center;padding:0;touch-action:manipulation}.restart-top:active{transform:scale(.96)}
 .preview-wrap{position:relative;z-index:40;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible;background:none;border:0;box-shadow:none}
-.preview{position:relative;width:220px;height:126px;flex:0 0 auto}.preview-grid{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.preview-grid polygon,.preview-grid line{fill:none;stroke:rgba(110,231,242,.42);stroke-width:1.05;vector-effect:non-scaling-stroke}.cell{position:absolute;width:58px;height:36px;display:grid;place-items:center;pointer-events:none}.dot{position:relative;z-index:2;width:var(--ball-size);height:var(--ball-size);border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5eded 0 8%,#b99a9d 12%,#8d676d 56%,#4b3238 100%);box-shadow:0 0 12px rgba(154,105,112,.48);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall 1.15s cubic-bezier(.18,.72,.22,1) both}@keyframes materializeBall{0%{opacity:0;transform:scale(.12);filter:blur(6px)}28%{opacity:.16;transform:scale(.42);filter:blur(3.8px)}72%{opacity:.76;transform:scale(1.04);filter:blur(.8px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+.preview{position:relative;width:220px;height:126px;flex:0 0 auto}.preview-grid{position:absolute;inset:0;width:100%;height:100%;overflow:visible}.preview-grid polygon,.preview-grid line{fill:none;stroke:rgba(110,231,242,.42);stroke-width:1.05;vector-effect:non-scaling-stroke}.cell{position:absolute;width:58px;height:36px;display:grid;place-items:center;pointer-events:none}.dot{position:relative;z-index:2;width:var(--ball-size);height:var(--ball-size);border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5eded 0 8%,#b99a9d 12%,#8d676d 56%,#4b3238 100%);box-shadow:0 0 12px rgba(154,105,112,.48);opacity:1;transform:scale(1)}.dot.materializing{animation:materializeBall 1.15s cubic-bezier(.18,.72,.22,1) both}.dot.pre-drop-blink{animation:preDropBlink .34s ease-in-out 1 both}@keyframes preDropBlink{0%,100%{opacity:1;filter:brightness(1)}45%{opacity:.22;filter:brightness(1.9)}}@keyframes materializeBall{0%{opacity:0;transform:scale(.12);filter:blur(6px)}28%{opacity:.16;transform:scale(.42);filter:blur(3.8px)}72%{opacity:.76;transform:scale(1.04);filter:blur(.8px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 .fall-ball{position:absolute;left:0;top:0;width:var(--ball-size);height:var(--ball-size);border-radius:50%;z-index:30;pointer-events:none;opacity:0;background:radial-gradient(circle at 35% 30%,#fff 0 8%,#ffb0b0 10%,#ff6b6b 55%,#9b1825 100%);box-shadow:0 0 16px rgba(255,107,107,.82);transform:translate(-50%,-50%)}
 .stage{position:relative;min-height:0;overflow:hidden;background:none;border-radius:0}
 canvas{width:100%;height:100%;display:block;touch-action:none}.message,.legend,.countdown{display:none}
@@ -24,7 +24,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none}.message,.legend,.
 <div id="app">
   <div id="fallBall" class="fall-ball" aria-hidden="true"></div>
   <header class="hud">
-    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.15</div></div>
+    <div><div class="score">SCORE <span id="score">000000</span></div><div class="sub">CUBO VIVO · PROTOTIPO 0.16</div></div>
     <button id="restart" class="restart-top" aria-label="Reiniciar">↻</button>
   </header>
 
@@ -61,14 +61,17 @@ const BALL_SPEED = (BALL_START_Z - BALL_ENTRY_Z) / FALL_TIME;
 let traverseDuration = (BALL_ENTRY_Z - BALL_EXIT_Z) / BALL_SPEED;
 const ROT_TIME = 0.18;
 const FIRST_PREP_TIME = 1.55;
-const NEXT_PREP_TIME = 0.48;
+const NEXT_PREP_TIME = 0;
+const MATRIX_EXIT_Z = -0.5;
+const PRE_DROP_BLINK_TIME = 0.34;
+const PREVIEW_REVEAL_DELAY = 0.42;
 const Cell = Object.freeze({ EMPTY:0, SOLID:1, TX:2, TY:3, TZ:4 });
-let grid, score, state, timer, currentBall, queuedBall, activeBall, rotAnim, gameOver, lastTime, breakBursts, previewMaterialize, previewRevealTimer, queuedVisible, prepareDuration;
+let grid, score, state, timer, currentBall, queuedBall, activeBall, departingBalls, rotAnim, gameOver, lastTime, breakBursts, previewMaterialize, previewRevealTimer, queuedVisible, prepareDuration, previewBlinking, audioCtx;
 
 function makeGrid(){ return Array.from({length:N},()=>Array.from({length:N},()=>Array(N).fill(Cell.SOLID))); }
 function setCell(x,y,z,v){ grid[x][y][z]=v; }
 function reset(){
-  grid=makeGrid(); score=0; gameOver=false; rotAnim=null; activeBall=null; breakBursts=[];
+  grid=makeGrid(); score=0; gameOver=false; rotAnim=null; activeBall=null; departingBalls=[]; breakBursts=[]; previewBlinking=false;
   // Three original tunnels, one per axis: center, edge, corner.
   for(let x=0;x<N;x++) setCell(x,1,1,Cell.TX);       // central X tunnel
   for(let y=0;y<N;y++) setCell(1,y,0,Cell.TY);       // edge Y tunnel
@@ -82,16 +85,18 @@ function randomBall(exclude=null){
   while(exclude && ball.row===exclude.row && ball.col===exclude.col);
   return ball;
 }
-function advanceBallQueue(){
+function advanceBallQueue(startImmediately=false){
   currentBall=queuedBall;
   queuedBall=randomBall(currentBall);
   previewMaterialize=false;
   previewRevealTimer=0;
   queuedVisible=false;
-  prepareDuration=NEXT_PREP_TIME;
-  state='PREPARING';
+  previewBlinking=false;
+  prepareDuration=startImmediately?0:NEXT_PREP_TIME;
+  state=startImmediately?'FALLING':'PREPARING';
   timer=0;
   renderPreview();
+  if(startImmediately) playSound('drop');
 }
 function renderPreview(){
   previewEl.innerHTML='';
@@ -122,13 +127,15 @@ function renderPreview(){
     d.dataset.row=String(r); d.dataset.col=String(c);
     const center={x:(pts[r][c].x+pts[r][c+1].x+pts[r+1][c+1].x+pts[r+1][c].x)/4,y:(pts[r][c].y+pts[r][c+1].y+pts[r+1][c+1].y+pts[r+1][c].y)/4};
     d.style.left=(center.x-29)+'px';d.style.top=(center.y-18)+'px';
-    if(isQueued){const dot=document.createElement('div');dot.className='dot'+(previewMaterialize?' materializing':'');d.appendChild(dot);} previewEl.appendChild(d);
+    if(isQueued){const dot=document.createElement('div');dot.className='dot'+(previewMaterialize?' materializing':'')+(previewBlinking?' pre-drop-blink':'');d.appendChild(dot);} previewEl.appendChild(d);
   }
   previewMaterialize=false;
 }
 function requestRotation(type){
-  // No queue: ignore presses while a rotation is playing or the ball is crossing.
-  if(gameOver || rotAnim || state==='RESOLVING') return;
+  // Rotation is locked only while a ball is physically inside the matrix.
+  if(gameOver || rotAnim || (activeBall && activeBall.currentZ>MATRIX_EXIT_Z)) return;
+  ensureAudio();
+  playSound('rotate');
   rotAnim={type,t:0};
 }
 function rotateGridX(){
@@ -178,21 +185,24 @@ function resolveBall(){
   }
   hits.sort((a,b)=>b.z-a.z);
   traverseDuration=calculateTraverseDuration(currentBall);
-  activeBall={x,y,t:0,clear,hits,nextHit:0,currentZ:BALL_ENTRY_Z,duration:traverseDuration};
+  activeBall={x,y,t:0,clear,hits,nextHit:0,nextTunnel:0,currentZ:BALL_ENTRY_Z,duration:traverseDuration,handedOff:false,blinkStarted:false};
   state='RESOLVING'; timer=0;
   if(clear) score+=100;
 }
-function finishResolution(){
-  // Safety: if a very slow frame skipped a contact, finish remaining impacts in order.
-  if(activeBall && !activeBall.clear){
-    while(activeBall.nextHit<activeBall.hits.length){
-      breakHit(activeBall.hits[activeBall.nextHit++]);
-    }
-  }
+function handOffAfterMatrixExit(){
+  if(!activeBall || activeBall.handedOff) return;
+  activeBall.handedOff=true;
+  departingBalls.push({x:activeBall.x,y:activeBall.y,z:activeBall.currentZ});
   activeBall=null;
   const count=countCubes();
   if(count===0){ gameOver=true; state='GAME OVER'; updateUI(); return; }
-  advanceBallQueue();
+  advanceBallQueue(true);
+}
+function finishResolution(){
+  if(activeBall && !activeBall.clear){
+    while(activeBall.nextHit<activeBall.hits.length) breakHit(activeBall.hits[activeBall.nextHit++]);
+  }
+  handOffAfterMatrixExit();
 }
 function countCubes(){let n=0;for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY)n++;return n;}
 function breakHit(p){
@@ -200,6 +210,7 @@ function breakHit(p){
   grid[p.x][p.y][p.z]=Cell.EMPTY;
   score+=10;
   breakBursts.push({x:p.x,y:p.y,z:p.z,t:0});
+  playSound('break');
 }
 function processSequentialBreaks(){
   if(!activeBall || activeBall.clear) return;
@@ -212,6 +223,37 @@ function processSequentialBreaks(){
     activeBall.nextHit++;
   }
 }
+function ensureAudio(){
+  if(audioCtx) return audioCtx;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) return null;
+  audioCtx=new AC();
+  if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+  return audioCtx;
+}
+function tone(freq,duration,volume,type='sine',slide=0){
+  const ac=ensureAudio(); if(!ac) return;
+  const now=ac.currentTime, osc=ac.createOscillator(), gain=ac.createGain();
+  osc.type=type; osc.frequency.setValueAtTime(freq,now);
+  if(slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40,freq+slide),now+duration);
+  gain.gain.setValueAtTime(.0001,now); gain.gain.exponentialRampToValueAtTime(volume,now+.008); gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+  osc.connect(gain).connect(ac.destination); osc.start(now); osc.stop(now+duration+.02);
+}
+function playSound(kind){
+  if(kind==='rotate') tone(170,.08,.035,'triangle',55);
+  else if(kind==='break') tone(115,.055,.045,'square',-35);
+  else if(kind==='tunnel') { tone(520,.11,.025,'sine',140); setTimeout(()=>tone(780,.09,.018,'sine',80),55); }
+  else if(kind==='drop') tone(340,.07,.025,'square',-90);
+}
+function processTunnelSounds(){
+  if(!activeBall) return;
+  while(activeBall.nextTunnel<N){
+    const z=N-1-activeBall.nextTunnel;
+    if(activeBall.currentZ>z+.12) break;
+    if(grid[activeBall.x][activeBall.y][z]===Cell.TZ) playSound('tunnel');
+    activeBall.nextTunnel++;
+  }
+}
 function update(dt){
   if(gameOver) return;
   if(rotAnim){
@@ -220,27 +262,28 @@ function update(dt){
   }
   timer+=dt;
   if(state==='PREPARING' && timer>=prepareDuration){
-    state='FALLING';
-    timer=0;
-    previewRevealTimer=0;
-    queuedVisible=false;
-    renderPreview();
+    state='FALLING'; timer=0; previewRevealTimer=0; queuedVisible=false; previewBlinking=false; renderPreview(); playSound('drop');
   }
   if(state==='FALLING' && !queuedVisible){
     previewRevealTimer+=dt;
-    if(previewRevealTimer>=.42){
-      queuedVisible=true;
-      previewMaterialize=true;
-      renderPreview();
-    }
+    if(previewRevealTimer>=PREVIEW_REVEAL_DELAY){ queuedVisible=true; previewMaterialize=true; renderPreview(); }
   }
   if(state==='FALLING' && timer>=FALL_TIME) resolveBall();
-  else if(state==='RESOLVING'){
+  else if(state==='RESOLVING' && activeBall){
     activeBall.t=Math.min(1,timer/activeBall.duration);
     activeBall.currentZ=BALL_ENTRY_Z-activeBall.t*(BALL_ENTRY_Z-BALL_EXIT_Z);
     processSequentialBreaks();
-    if(timer>=activeBall.duration) finishResolution();
+    processTunnelSounds();
+    const zPerSecond=(BALL_ENTRY_Z-BALL_EXIT_Z)/activeBall.duration;
+    const blinkLeadZ=MATRIX_EXIT_Z+zPerSecond*PRE_DROP_BLINK_TIME;
+    if(!activeBall.blinkStarted && activeBall.currentZ<=blinkLeadZ){
+      activeBall.blinkStarted=true; previewBlinking=true; renderPreview();
+    }
+    if(activeBall.currentZ<=MATRIX_EXIT_Z) handOffAfterMatrixExit();
+    else if(timer>=activeBall.duration) finishResolution();
   }
+  for(const b of departingBalls) b.z-=BALL_SPEED*dt;
+  departingBalls=departingBalls.filter(b=>b.z>BALL_EXIT_Z);
   for(const b of breakBursts) b.t+=dt;
   breakBursts=breakBursts.filter(b=>b.t<.34);
 }
@@ -275,7 +318,7 @@ function updateFallBallOverlay(){
 }
 function updateUI(){
   scoreEl.textContent=String(score).padStart(6,'0');
-  const locked = gameOver || state==='RESOLVING' || !!rotAnim;
+  const locked = gameOver || !!rotAnim || !!(activeBall && activeBall.currentZ>MATRIX_EXIT_Z);
   rotateABtn.disabled=locked; rotateBBtn.disabled=locked;
 }
 function resize(){
@@ -416,17 +459,20 @@ function drawVoxel(x,y,z,v,ox,oy,s,alpha=1){
   ctx.restore();
   if(isTunnel) drawTunnelGraphic(x,y,z,v,ox,oy,s,alpha);
 }
+function cameraDepth(p){ return p.x*.347+p.y*.347+p.z*.336; }
 function buildGhostGridItems(ox,oy,s){
   const lines=[];
   const add=(a,b)=>{
     const ra=rotatePointAroundCenter(a.x,a.y,a.z);
     const rb=rotatePointAroundCenter(b.x,b.y,b.z);
-    lines.push({
-      kind:'gridline',
-      a:project(ra.x,ra.y,ra.z,ox,oy,s),
-      b:project(rb.x,rb.y,rb.z,ox,oy,s),
-      depth:(ra.x+ra.y+ra.z+rb.x+rb.y+rb.z)/2
-    });
+    const parts=8;
+    for(let i=0;i<parts;i++){
+      const t0=i/parts,t1=(i+1)/parts;
+      const p0={x:ra.x+(rb.x-ra.x)*t0,y:ra.y+(rb.y-ra.y)*t0,z:ra.z+(rb.z-ra.z)*t0};
+      const p1={x:ra.x+(rb.x-ra.x)*t1,y:ra.y+(rb.y-ra.y)*t1,z:ra.z+(rb.z-ra.z)*t1};
+      const mid={x:(p0.x+p1.x)/2,y:(p0.y+p1.y)/2,z:(p0.z+p1.z)/2};
+      lines.push({kind:'gridline',a:project(p0.x,p0.y,p0.z,ox,oy,s),b:project(p1.x,p1.y,p1.z,ox,oy,s),depth:cameraDepth(mid)});
+    }
   };
   // Unique lattice edges of the complete 3×3×3 guide volume.
   for(let i=0;i<N;i++) for(let j=0;j<=N;j++) for(let k=0;k<=N;k++)
@@ -478,12 +524,13 @@ function render(){
   const s=Math.min(w/6.2,h/6.2); const ox=w/2, oy=h*.69;
   const items=buildGhostGridItems(ox,oy,s);
   for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY){
-    const rp=rotatePointAroundCenter(x,y,z); items.push({kind:'voxel',x,y,z,v:grid[x][y][z],depth:rp.x+rp.y+rp.z});
+    const rp=rotatePointAroundCenter(x,y,z); items.push({kind:'voxel',x,y,z,v:grid[x][y][z],depth:cameraDepth(rp)});
   }
   if(state==='RESOLVING'&&activeBall){
     const z=activeBall.currentZ;
-    items.push({kind:'ball',x:activeBall.x,y:activeBall.y,z,depth:activeBall.x+activeBall.y+z+.35});
+    items.push({kind:'ball',x:activeBall.x,y:activeBall.y,z,depth:cameraDepth({x:activeBall.x,y:activeBall.y,z})});
   }
+  for(const b of departingBalls) items.push({kind:'ball',x:b.x,y:b.y,z:b.z,depth:cameraDepth(b)});
   items.sort((a,b)=>a.depth-b.depth);
   for(const it of items){
     if(it.kind==='voxel') drawVoxel(it.x,it.y,it.z,it.v,ox,oy,s);
@@ -504,8 +551,8 @@ function loop(now){ const dt=Math.min(.05,(now-lastTime)/1000||0);lastTime=now;u
 
 document.getElementById('rotateA').addEventListener('pointerdown',()=>requestRotation('A'));
 document.getElementById('rotateB').addEventListener('pointerdown',()=>requestRotation('B'));
-document.getElementById('restart').addEventListener('click',reset);
-window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')requestRotation('A');if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')requestRotation('B');if(e.key.toLowerCase()==='r')reset();});
+document.getElementById('restart').addEventListener('click',()=>{ensureAudio();reset();});
+window.addEventListener('keydown',e=>{ensureAudio();if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')requestRotation('A');if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')requestRotation('B');if(e.key.toLowerCase()==='r')reset();});
 window.addEventListener('resize',resize);
 resize();reset();requestAnimationFrame(loop);
 })();
