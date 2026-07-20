@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cubo Vivo — Prototipo v0.34</title>
+<title>Cubo Vivo — Prototipo v0.35</title>
 <style>
 :root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;--ball-size:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -417,7 +417,7 @@ function drawFaceItem(it){ctx.save();let a=it.isTunnel?.72:1;if(it.effect){const
 function cameraDepth(p){return p.x*.347+p.y*.347+p.z*.336;}
 function buildGhostGridItems(ox,oy,s){const lines=[],add=(a,b)=>{const ra=rotatePointAroundCenter(a.x,a.y,a.z),rb=rotatePointAroundCenter(b.x,b.y,b.z),parts=10;for(let i=0;i<parts;i++){const t0=i/parts,t1=(i+1)/parts,p0={x:ra.x+(rb.x-ra.x)*t0,y:ra.y+(rb.y-ra.y)*t0,z:ra.z+(rb.z-ra.z)*t0},p1={x:ra.x+(rb.x-ra.x)*t1,y:ra.y+(rb.y-ra.y)*t1,z:ra.z+(rb.z-ra.z)*t1},mid={x:(p0.x+p1.x)/2,y:(p0.y+p1.y)/2,z:(p0.z+p1.z)/2};lines.push({kind:'gridline',a:project(p0.x,p0.y,p0.z,ox,oy,s),b:project(p1.x,p1.y,p1.z,ox,oy,s),depth:cameraDepth(mid)});}};for(let i=0;i<N;i++)for(let j=0;j<=N;j++)for(let k=0;k<=N;k++)add({x:i-.5,y:j-.5,z:k-.5},{x:i+.5,y:j-.5,z:k-.5});for(let i=0;i<=N;i++)for(let j=0;j<N;j++)for(let k=0;k<=N;k++)add({x:i-.5,y:j-.5,z:k-.5},{x:i-.5,y:j+.5,z:k-.5});for(let i=0;i<=N;i++)for(let j=0;j<=N;j++)for(let k=0;k<N;k++)add({x:i-.5,y:j-.5,z:k-.5},{x:i-.5,y:j-.5,z:k+.5});return lines;}
 function guidePulseAt(z,guide){const phase=guideSweepPhase(guide);if(phase===null)return 0;const head=(N-.05)*(1-phase),d=Math.abs(z-head);return Math.max(0,1-d/.82);}
-function buildGuideItems(ox,oy,s){const items=[],edges=[[0,4],[1,5],[2,6],[3,7]];for(const guide of (landingGuides||[])){const x=guide.x,y=guide.y;for(let z=0;z<N;z++){const g=cubeGeometry(x,y,z,ox,oy,s),glow=guidePulseAt(z,guide);for(const [a,b] of edges){const wa=g.world[a],wb=g.world[b],mid={x:(wa.x+wb.x)/2,y:(wa.y+wb.y)/2,z:(wa.z+wb.z)/2};items.push({kind:'guideLine',a:g.pts[a],b:g.pts[b],depth:cameraDepth(mid)+.001,glow});}}}return items;}
+function buildGuideItems(ox,oy,s){const items=[],edges=[[4,5],[5,6],[6,7],[7,4]];for(const guide of (landingGuides||[])){const x=guide.x,y=guide.y,z=N-1,g=cubeGeometry(x,y,z,ox,oy,s),glow=guidePulseAt(z,guide);for(const [a,b] of edges){const wa=g.world[a],wb=g.world[b],mid={x:(wa.x+wb.x)/2,y:(wa.y+wb.y)/2,z:(wa.z+wb.z)/2};items.push({kind:'guideLine',a:g.pts[a],b:g.pts[b],depth:cameraDepth(mid)+.001,glow});}}return items;}
 function drawGuideLine(it){
   ctx.save();
   ctx.lineCap='round';
@@ -432,7 +432,7 @@ function drawFallingBlock(x,y,z,type,ox,oy,s,effect=null){drawVoxel(x,y,z,type==
 function drawBreakBurst(b,ox,oy,s){const p=project(b.x,b.y,b.z,ox,oy,s),q=Math.min(1,b.t/.34),fade=1-q;ctx.save();ctx.globalAlpha=fade;ctx.strokeStyle='rgba(205,250,255,.95)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,s*(.08+.28*q),0,Math.PI*2);ctx.stroke();ctx.restore();}
 function render(){
   const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);const s=getScale(),ox=w/2,oy=h*.72,items=buildGhostGridItems(ox,oy,s);
-  for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY){const faces=voxelFaceItems(x,y,z,grid[x][y][z],ox,oy,s);const guide=(landingGuides||[]).find(g=>x===g.x&&y===g.y);if(guide){const glow=guidePulseAt(z,guide);for(const it of faces)if(it.kind==='face')it.guideGlow=glow;}items.push(...faces);}items.push(...buildGuideItems(ox,oy,s));
+  for(let x=0;x<N;x++)for(let y=0;y<N;y++)for(let z=0;z<N;z++)if(grid[x][y][z]!==Cell.EMPTY){const faces=voxelFaceItems(x,y,z,grid[x][y][z],ox,oy,s);const guide=(landingGuides||[]).find(g=>x===g.x&&y===g.y);if(guide&&z===N-1){const glow=guidePulseAt(z,guide);for(const it of faces)if(it.kind==='face')it.guideGlow=glow;}items.push(...faces);}items.push(...buildGuideItems(ox,oy,s));
   for(const ball of activeBalls)items.push({kind:'ball',x:ball.x,y:ball.y,z:ball.currentZ,depth:cameraDepth({x:ball.x,y:ball.y,z:ball.currentZ})});
   for(const block of activeBlocks)items.push(...voxelFaceItems(block.x,block.y,block.currentZ,block.cellType,ox,oy,s,'fallblock',block.overflow?block.flashT:null));
   for(const b of looseBlocks)items.push(...voxelFaceItems(b.x,b.y,b.currentZ,b.cellType,ox,oy,s,'fallblock'));
