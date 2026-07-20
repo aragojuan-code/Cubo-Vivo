@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Cubo Vivo — Prototipo v0.33</title>
+<title>Cubo Vivo — Prototipo v0.34</title>
 <style>
 :root{--bg:#071016;--panel:#0d1a22;--line:#2a4c5c;--text:#e7fbff;--muted:#81aab8;--cyan:#6ee7f2;--red:#ff6b6b;--btn:#102630;--ball-size:20px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -95,11 +95,27 @@ function generateRound(forceSingle=false){
   return cells.slice(0,count).map(pos=>({...randomPiece(),...pos}));
 }
 function maybeStartWave(){if(level>=8&&waveRounds===0&&Math.random()<.07){waveRounds=5;showFlash('⚠ WAVE!');playSound('wave');}}
-function setLandingGuides(round,active=false){
-  const duration=currentFallTime();
+function estimateRoundResolveDuration(round){
+  const fall=currentFallTime();
+  let maxDur=.95;
+  for(const piece of (round||[])){
+    const {x,y}=topColumnFromPreview(piece.row,piece.col);
+    if(piece.type==='ball'){
+      const pxSpeed=getOutsidePxSpeed(piece),zSpeed=pxSpeed/(getScale()*.62),dur=(ENTRY_Z-DEPART_Z)/Math.max(.001,zSpeed);
+      if(dur>maxDur)maxDur=dur;
+    }else{
+      const info=getBlockLandingInfo(piece),targetZ=info.unsupported?EXIT_Z:(info.overflow?OVERFLOW_Z:info.highest+1),pxSpeed=getOutsidePxSpeed(piece),zSpeed=pxSpeed/(getScale()*.62),travel=(info.overflow?0:(ENTRY_Z-targetZ));
+      const dur=info.overflow?OVERFLOW_FLASH_TIME:(travel/Math.max(.001,zSpeed));
+      if(dur>maxDur)maxDur=dur;
+    }
+  }
+  return maxDur;
+}
+function setLandingGuides(round,active=false,durationOverride=null){
+  const duration=durationOverride??currentFallTime();
   landingGuides=(round||[]).map(piece=>{const {x,y}=topColumnFromPreview(piece.row,piece.col);return{piece:{...piece},x,y,t:0,duration,active};});
 }
-function activateLandingGuides(){for(const guide of landingGuides){guide.t=0;guide.duration=currentFallTime();guide.active=true;}}
+function activateLandingGuides(durationOverride=null){for(const guide of landingGuides){guide.t=0;guide.duration=durationOverride??currentFallTime();guide.active=true;}}
 function guideSweepPhase(guide){
   if(!guide||!guide.active)return null;
   const u=Math.max(0,Math.min(1,guide.t/Math.max(.001,guide.duration)));
@@ -135,7 +151,7 @@ function setPieceVisual(el,type){
 function advanceQueue(startImmediately=false){
   boostActive=false;boostUsedThisRound=false;if(waveRounds>0)waveRounds--;else maybeStartWave();
   currentRound=queuedRound;queuedRound=generateRound();currentPiece=currentRound[0];previewMaterialize=false;previewRevealTimer=0;queuedVisible=false;previewBlinking=false;prepareDuration=startImmediately?0:NEXT_PREP_TIME;
-  state=startImmediately?'FALLING':'PREPARING';timer=0;setLandingGuides(currentRound,startImmediately);renderPreview();if(startImmediately)playSound('drop');
+  state=startImmediately?'FALLING':'PREPARING';timer=0;if(!landingGuides.length)setLandingGuides(currentRound,startImmediately);renderPreview();if(startImmediately)playSound('drop');
 }
 function renderPreview(){
   previewEl.innerHTML='';
@@ -189,7 +205,8 @@ function makeBlockMover(piece){
   return{piece:{...piece},x,y,currentZ:overflow?OVERFLOW_Z:ENTRY_Z,targetZ,zSpeed,cellType,overflow,unsupported,flashT:0,done:false};
 }
 function resolveRound(){
-  state='RESOLVING';timer=0;previewBlinking=false;setLandingGuides(queuedRound,false);
+  state='RESOLVING';timer=0;previewBlinking=false;
+  setLandingGuides(queuedRound,true,estimateRoundResolveDuration(currentRound)+currentFallTime());
   activeBalls=currentRound.filter(p=>p.type==='ball').map(makeBallMover);
   activeBlocks=currentRound.filter(p=>p.type!=='ball').map(makeBlockMover);
   if(!activeBalls.length&&!activeBlocks.length)finishRoundResolution();
@@ -259,14 +276,14 @@ function update(dt){
   if(gameOver)return;
   if(state==='COUNTDOWN'){
     timer+=dt;const step=timer<1?3:timer<2?2:timer<3?1:'GO!';
-    if(step!==countdownStep){countdownStep=step;countdownEl.textContent=step;countdownEl.className='countdown show'+(step==='GO!'?' go':'');if(step===3||step===2||step===1)playSound('count');else{playSound('go');state='FALLING';timer=0;queuedVisible=true;activateLandingGuides();renderPreview();playSound('drop');setTimeout(()=>{countdownEl.className='countdown';countdownEl.textContent='';},620);}}
+    if(step!==countdownStep){countdownStep=step;countdownEl.textContent=step;countdownEl.className='countdown show'+(step==='GO!'?' go':'');if(step===3||step===2||step===1)playSound('count');else{playSound('go');state='FALLING';timer=0;queuedVisible=true;activateLandingGuides(currentFallTime());renderPreview();playSound('drop');setTimeout(()=>{countdownEl.className='countdown';countdownEl.textContent='';},620);}}
     return;
   }
   const pieceDt=dt*((boostActive&&(state==='FALLING'||state==='RESOLVING'))?3:1);
   if(rotAnim){rotAnim.t+=dt;if(rotAnim.t>=ROT_TIME){rotAnim.type==='A'?rotateGridX():rotateGridY();rotAnim=null;}}
   timer+=(state==='FALLING'?pieceDt:dt);
-  if(state==='FALLING')for(const g of landingGuides)if(g.active)g.t=Math.min(g.duration,g.t+pieceDt);
-  if(state==='PREPARING'&&timer>=prepareDuration){state='FALLING';timer=0;previewRevealTimer=0;queuedVisible=false;previewBlinking=false;activateLandingGuides();renderPreview();playSound('drop');}
+  if(state==='FALLING'||state==='RESOLVING'||state==='PREPARING')for(const g of landingGuides)if(g.active)g.t=Math.min(g.duration,g.t+pieceDt);
+  if(state==='PREPARING'&&timer>=prepareDuration){state='FALLING';timer=0;previewRevealTimer=0;queuedVisible=false;previewBlinking=false;renderPreview();playSound('drop');}
   if(state==='FALLING'){previewRevealTimer+=dt;if(!queuedVisible&&previewRevealTimer>=PREVIEW_REVEAL_DELAY){queuedVisible=true;previewMaterialize=true;renderPreview();}}
   if(state==='FALLING'&&timer>=currentFallTime())resolveRound();
   else if(state==='RESOLVING'){
@@ -315,6 +332,28 @@ function drawOverlayVoxel(cx,cy,type,s,alpha=1){
   pctx.restore();if(isTunnel)drawOverlayTunnel(cx,cy,s,alpha);
 }
 function resizeOverlay(){const r=appEl.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);pieceOverlay.width=Math.round(r.width*dpr);pieceOverlay.height=Math.round(r.height*dpr);pctx.setTransform(dpr,0,0,dpr,0,0);}
+function previewCellPoly(cell){
+  const raw=(cell?.dataset?.poly||'').split(';').filter(Boolean).map(s=>{const [x,y]=s.split(',').map(Number);return{x,y};});
+  return raw.length===4?raw:null;
+}
+function topGuideRailPoints(x,y,ox,oy,s){
+  const g=cubeGeometry(x,y,N-1,ox,oy,s),top=g.pts.slice(4,8).sort((a,b)=>a.x-b.x);
+  return {left:top[0],right:top[top.length-1]};
+}
+function drawPreviewOriginGlow(poly,phase){
+  if(!poly||poly.length!==4)return;
+  const glow=phase===null?0.45:(0.38+0.62*Math.max(0,1-phase*1.35));
+  pctx.save();
+  pctx.globalAlpha=.16+.18*glow;
+  pctx.fillStyle='rgba(255,226,105,.65)';
+  pctx.beginPath();pctx.moveTo(poly[0].x,poly[0].y);for(let i=1;i<poly.length;i++)pctx.lineTo(poly[i].x,poly[i].y);pctx.closePath();pctx.fill();
+  pctx.globalAlpha=1;
+  pctx.strokeStyle=`rgba(255,226,105,${.30+.60*glow})`;
+  pctx.lineWidth=1.6+1.2*glow;
+  pctx.shadowColor='rgba(255,220,80,.98)';pctx.shadowBlur=7+10*glow;
+  pctx.beginPath();pctx.moveTo(poly[0].x,poly[0].y);for(let i=1;i<poly.length;i++)pctx.lineTo(poly[i].x,poly[i].y);pctx.closePath();pctx.stroke();
+  pctx.restore();
+}
 function drawPieceOverlay(){
   const w=pieceOverlay.clientWidth,h=pieceOverlay.clientHeight;pctx.clearRect(0,0,w,h);
   const ar=appEl.getBoundingClientRect(),can=canvas.getBoundingClientRect(),s=getScale();
@@ -331,13 +370,16 @@ function drawPieceOverlay(){
   if(state==='COUNTDOWN'||state==='PREPARING'){let alpha=prepareDuration>0?Math.min(1,timer/Math.max(.01,prepareDuration)):1;for(const piece of currentRound)drawAtCell(piece,false,alpha);}else if(state==='FALLING'){if(queuedVisible){const a=Math.min(1,previewRevealTimer/Math.max(.01,PREVIEW_REVEAL_DELAY+.75));for(const piece of queuedRound)drawAtCell(piece,false,a);}for(const piece of currentRound)drawAtCell(piece,true,1);}else if(queuedVisible){for(const piece of queuedRound)drawAtCell(piece,false,1);}
   for(const landingGuide of (landingGuides||[])){
     const piece=landingGuide.piece,cell=previewEl.querySelector(`.cell[data-row="${piece.row}"][data-col="${piece.col}"]`);if(!cell)continue;
-    const cr=cell.getBoundingClientRect(),sx=cr.left+cr.width/2-ar.left,sy=cr.top+cr.height*.72-ar.top;
-    const ox=canvas.clientWidth/2,oy=canvas.clientHeight*.72,entry=project(landingGuide.x,landingGuide.y,ENTRY_Z+.5,ox,oy,s);
-    const ex=can.left-ar.left+entry.x,ey=can.top-ar.top+entry.y,vx=ex-sx,vy=ey-sy,len=Math.max(1,Math.hypot(vx,vy)),nx=-vy/len,ny=vx/len,spread=Math.max(7,s*.14),phase=guideSweepPhase(landingGuide);
+    const poly=previewCellPoly(cell);if(!poly)continue;
+    const origin=poly.slice().sort((a,b)=>a.x-b.x),startLeft={x:origin[0].x,y:(origin[0].y+origin[1].y)/2},startRight={x:origin[origin.length-1].x,y:(origin[2].y+origin[3].y)/2};
+    const ox=canvas.clientWidth/2,oy=canvas.clientHeight*.72,rails=topGuideRailPoints(landingGuide.x,landingGuide.y,ox,oy,s),phase=guideSweepPhase(landingGuide);
+    const leftEnd={x:can.left-ar.left+rails.left.x,y:can.top-ar.top+rails.left.y},rightEnd={x:can.left-ar.left+rails.right.x,y:can.top-ar.top+rails.right.y};
+    drawPreviewOriginGlow(poly,phase===null?0:phase);
     pctx.save();pctx.lineCap='round';
-    for(const off of [-spread,spread]){
-      pctx.strokeStyle='rgba(255,221,96,.20)';pctx.lineWidth=1.1;pctx.beginPath();pctx.moveTo(sx+nx*off,sy+ny*off);pctx.lineTo(ex+nx*off,ey+ny*off);pctx.stroke();
-      if(phase!==null){const t0=Math.max(0,phase-.18),t1=Math.min(1,phase+.08);pctx.strokeStyle='rgba(255,226,105,.95)';pctx.lineWidth=2.4;pctx.shadowColor='rgba(255,220,80,.95)';pctx.shadowBlur=11;pctx.beginPath();pctx.moveTo(sx+vx*t0+nx*off,sy+vy*t0+ny*off);pctx.lineTo(sx+vx*t1+nx*off,sy+vy*t1+ny*off);pctx.stroke();}
+    for(const [a,b] of [[startLeft,leftEnd],[startRight,rightEnd]]){
+      const vx=b.x-a.x,vy=b.y-a.y;
+      pctx.strokeStyle='rgba(255,221,96,.20)';pctx.lineWidth=1.25;pctx.beginPath();pctx.moveTo(a.x,a.y);pctx.lineTo(b.x,b.y);pctx.stroke();
+      if(phase!==null){const t0=Math.max(0,phase-.18),t1=Math.min(1,phase+.08);pctx.strokeStyle='rgba(255,226,105,.98)';pctx.lineWidth=2.6;pctx.shadowColor='rgba(255,220,80,.98)';pctx.shadowBlur=12;pctx.beginPath();pctx.moveTo(a.x+vx*t0,a.y+vy*t0);pctx.lineTo(a.x+vx*t1,a.y+vy*t1);pctx.stroke();}
     }
     pctx.restore();
   }
@@ -375,7 +417,7 @@ function drawFaceItem(it){ctx.save();let a=it.isTunnel?.72:1;if(it.effect){const
 function cameraDepth(p){return p.x*.347+p.y*.347+p.z*.336;}
 function buildGhostGridItems(ox,oy,s){const lines=[],add=(a,b)=>{const ra=rotatePointAroundCenter(a.x,a.y,a.z),rb=rotatePointAroundCenter(b.x,b.y,b.z),parts=10;for(let i=0;i<parts;i++){const t0=i/parts,t1=(i+1)/parts,p0={x:ra.x+(rb.x-ra.x)*t0,y:ra.y+(rb.y-ra.y)*t0,z:ra.z+(rb.z-ra.z)*t0},p1={x:ra.x+(rb.x-ra.x)*t1,y:ra.y+(rb.y-ra.y)*t1,z:ra.z+(rb.z-ra.z)*t1},mid={x:(p0.x+p1.x)/2,y:(p0.y+p1.y)/2,z:(p0.z+p1.z)/2};lines.push({kind:'gridline',a:project(p0.x,p0.y,p0.z,ox,oy,s),b:project(p1.x,p1.y,p1.z,ox,oy,s),depth:cameraDepth(mid)});}};for(let i=0;i<N;i++)for(let j=0;j<=N;j++)for(let k=0;k<=N;k++)add({x:i-.5,y:j-.5,z:k-.5},{x:i+.5,y:j-.5,z:k-.5});for(let i=0;i<=N;i++)for(let j=0;j<N;j++)for(let k=0;k<=N;k++)add({x:i-.5,y:j-.5,z:k-.5},{x:i-.5,y:j+.5,z:k-.5});for(let i=0;i<=N;i++)for(let j=0;j<=N;j++)for(let k=0;k<N;k++)add({x:i-.5,y:j-.5,z:k-.5},{x:i-.5,y:j-.5,z:k+.5});return lines;}
 function guidePulseAt(z,guide){const phase=guideSweepPhase(guide);if(phase===null)return 0;const head=(N-.05)*(1-phase),d=Math.abs(z-head);return Math.max(0,1-d/.82);}
-function buildGuideItems(ox,oy,s){const items=[],edges=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];for(const guide of (landingGuides||[])){const x=guide.x,y=guide.y;for(let z=0;z<N;z++){const g=cubeGeometry(x,y,z,ox,oy,s),glow=guidePulseAt(z,guide);for(const [a,b] of edges){const wa=g.world[a],wb=g.world[b],mid={x:(wa.x+wb.x)/2,y:(wa.y+wb.y)/2,z:(wa.z+wb.z)/2};items.push({kind:'guideLine',a:g.pts[a],b:g.pts[b],depth:cameraDepth(mid)+.001,glow});}}}return items;}
+function buildGuideItems(ox,oy,s){const items=[],edges=[[0,4],[1,5],[2,6],[3,7]];for(const guide of (landingGuides||[])){const x=guide.x,y=guide.y;for(let z=0;z<N;z++){const g=cubeGeometry(x,y,z,ox,oy,s),glow=guidePulseAt(z,guide);for(const [a,b] of edges){const wa=g.world[a],wb=g.world[b],mid={x:(wa.x+wb.x)/2,y:(wa.y+wb.y)/2,z:(wa.z+wb.z)/2};items.push({kind:'guideLine',a:g.pts[a],b:g.pts[b],depth:cameraDepth(mid)+.001,glow});}}}return items;}
 function drawGuideLine(it){
   ctx.save();
   ctx.lineCap='round';
